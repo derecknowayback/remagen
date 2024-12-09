@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  emqx:
+    image: emqx/emqx:latest
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "8084:8084"
+      - "8883:8883"
+      - "18083:18083"
+    networks:
+      - local-network
+
+  kafka:
+    image: apache/kafka:3.8.0
+    ports:
+      - "9092:9092"
+      - "8848:8848"
+    volumes:
+      - /Users/dereckchen/kafka:/opt/kafka
+    networks:
+      - local-network
+
+networks:
+  local-network:
+    driver: bridge
