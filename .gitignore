@@ -1,0 +1,39 @@
+.idea
+remagen.iml
+
+# Logs
+logs
+*.log
+
+# Runtime data
+data
+
+# Server/client compiled files
+bin
+
+# dependency libs
+libs
+
+# node_modules
+node_modules
+
+# temp files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# OS-related files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
