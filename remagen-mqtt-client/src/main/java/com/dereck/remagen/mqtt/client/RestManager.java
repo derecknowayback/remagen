@@ -4,16 +4,18 @@ package com.dereck.remagen.mqtt.client;
 import com.dereck.remagen.mqtt.request.RestfulRequest;
 import com.dereck.remagen.mqtt.util.JsonUtils;
 import lombok.Data;
-import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
-import org.eclipse.jetty.client.util.StringRequestContent;
+import org.eclipse.jetty.client.api.Request;
+import org.eclipse.jetty.client.util.StringContentProvider;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-@Log
+@Slf4j
 @Data
 public class RestManager {
 
@@ -23,9 +25,15 @@ public class RestManager {
 
     private String hostAndPort;
 
-    public RestManager(boolean needHttps, String host, String port) {
+    public RestManager(String host, String port, boolean needHttps) {
         this.needHttps = needHttps;
         this.httpClient = new HttpClient();
+        try {
+            httpClient.start();
+        } catch (Exception e) {
+            log.error("HttpClient start error", e);
+            throw new RuntimeException(e);
+        }
         if (needHttps) {
             protocolPrefix = "https://";
         } else {
@@ -40,29 +48,24 @@ public class RestManager {
     }
 
 
-
-
     public <T> T sendPostRequest(RestfulRequest<T> request) {
         String url = protocolPrefix + hostAndPort + request.getUri();
-        String json = JsonUtils.toJson(request.getRequestBody());
+        String json = JsonUtils.toJsonString(request.getRequestBody());
         try {
             // send request
-            ContentResponse resp = httpClient.POST(url).headers(httpFields -> {
-                if (request.getRequestHeader() != null) {
-                    request.getRequestHeader().forEach(httpFields::put);
-                }
-            }).body(new StringRequestContent("application/json", json)).send();
+            Request post = httpClient.POST(url);
+            Map<String, String> header = request.getRequestHeader();
+            if (header != null && !header.isEmpty()) {
+                header.forEach(post::header);
+            }
+            ContentResponse resp = post.content(new StringContentProvider(
+                    "application/json", json, StandardCharsets.UTF_8)).send();
 
             // parse and return response
             return request.parseResp(resp.getContentAsString());
         } catch (InterruptedException | TimeoutException | ExecutionException e) {
             throw new RuntimeException(e);
         }
-    }
-
-
-    public void sendDeleteRequest(String url, Map<String,String> header) {
-
     }
 
     public <T> T sendGetRequest(RestfulRequest<T> request) {
@@ -74,12 +77,11 @@ public class RestManager {
 
             // parse and return response
             return request.parseResp(response.getContentAsString());
-        } catch (InterruptedException | TimeoutException | ExecutionException e) {
+        } catch (Exception e) {
+            log.error("Get request error: {}", request, e);
             throw new RuntimeException(e);
         }
     }
-
-
 
 
 }

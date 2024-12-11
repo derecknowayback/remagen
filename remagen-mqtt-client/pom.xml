@@ -25,6 +25,11 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.7.28</version>
         </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
         <!-- 测试ut -->
         <dependency>
             <groupId>junit</groupId>
@@ -41,7 +46,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-client</artifactId>
-            <version>11.0.15</version>
+            <version>9.4.56.v20240826</version>
         </dependency>
         <!-- Jackson核心库 -->
         <dependency>

@@ -6,6 +6,7 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.CreateConnectorRequest;
 import org.eclipse.jetty.http.HttpMethod;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class CreateConnectorReq extends CreateConnectorRequest implements RestfulRequest<ConnectorInfo> {
@@ -31,6 +32,12 @@ public class CreateConnectorReq extends CreateConnectorRequest implements Restfu
 
     @Override
     public Object getRequestBody() {
-        return this;
+        return new HashMap<String, Object>() {
+            {
+                put("name", name());
+                put("config", config());
+                put("initial_state", initialState());
+            }
+        };
     }
 }
