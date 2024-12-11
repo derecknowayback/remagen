@@ -9,6 +9,7 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.util.StringContentProvider;
+import org.eclipse.jetty.http.HttpMethod;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -84,4 +85,22 @@ public class RestManager {
     }
 
 
+    public <T> T sendDeleteRequest(RestfulRequest<T> request) {
+        try {
+            String url = protocolPrefix + hostAndPort + request.getUri();
+            Request delete = httpClient.newRequest(url).method(HttpMethod.DELETE);
+
+            Map<String, String> header = request.getRequestHeader();
+            if (header != null && !header.isEmpty()) {
+                header.forEach(delete::header);
+            }
+
+            ContentResponse resp = delete.send();
+
+            return request.parseResp(resp.getContentAsString());
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            log.error("Delete request error: {}", request, e);
+            throw new RuntimeException(e);
+        }
+    }
 }

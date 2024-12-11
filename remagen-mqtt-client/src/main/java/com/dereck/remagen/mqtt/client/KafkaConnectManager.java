@@ -1,6 +1,7 @@
 package com.dereck.remagen.mqtt.client;
 
 import com.dereck.remagen.mqtt.request.RestfulRequest;
+import com.dereck.remagen.mqtt.request.delete.DeleteConnectorRequest;
 import com.dereck.remagen.mqtt.request.get.GetAllConnectorsRequest;
 import com.dereck.remagen.mqtt.request.get.GetConnectorRequest;
 import com.dereck.remagen.mqtt.request.post.CreateConnectorReq;
@@ -34,7 +35,7 @@ public class KafkaConnectManager {
     }
 
 
-    public List<String> getAllConnector() {
+    public List<String> getAllConnectors() {
         GetAllConnectorsRequest getAllConnectorsRequest = new GetAllConnectorsRequest();
         return sendRequest(getAllConnectorsRequest);
     }
@@ -44,6 +45,10 @@ public class KafkaConnectManager {
         return sendRequest(getConnectorRequest);
     }
 
+    public void deleteConnector(String connectorName) {
+        DeleteConnectorRequest deleteConnectorRequest = new DeleteConnectorRequest(connectorName);
+        sendRequest(deleteConnectorRequest);
+    }
 
     public <T> T sendRequest(RestfulRequest<T> request) {
         switch (request.getRequestMethod()) {
@@ -51,7 +56,8 @@ public class KafkaConnectManager {
                 return restManager.sendGetRequest(request);
             case POST:
                 return restManager.sendPostRequest(request);
-            // todo support delete/put
+            case DELETE:
+                return restManager.sendDeleteRequest(request);
             default:
                 throw new RuntimeException("unsupported request method");
         }
