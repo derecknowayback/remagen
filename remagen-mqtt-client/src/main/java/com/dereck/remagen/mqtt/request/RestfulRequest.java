@@ -8,7 +8,7 @@ import java.util.Map;
 
 public interface RestfulRequest<Resp> {
 
-    Map<String,String> DEFAULT_HEADER = Collections.unmodifiableMap(
+    Map<String, String> DEFAULT_HEADER = Collections.unmodifiableMap(
             new HashMap<String, String>() {{
                 put("Content-Type", "application/json");
                 put("Accept", "application/json");
@@ -25,7 +25,7 @@ public interface RestfulRequest<Resp> {
         return null;
     }
 
-    default Map<String,String> getRequestHeader() {
+    default Map<String, String> getRequestHeader() {
         return RestfulRequest.DEFAULT_HEADER;
     }
 }
