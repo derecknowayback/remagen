@@ -12,6 +12,7 @@ import org.eclipse.paho.client.mqttv3.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Stream;
 
 
 @Getter
@@ -91,6 +92,10 @@ public class MqttClientV2 extends MqttClient {
         log.info("publish success");
     }
 
+    public void unsubscribe(BridgeOption bridgeOptions) throws MqttException {
+        unsubscribe(new BridgeOption[]{bridgeOptions});
+    }
+
     public void unsubscribe(BridgeOption[] bridgeOptions) throws MqttException {
         // 删除connector
         for (BridgeOption bridgeOption : bridgeOptions) {
@@ -99,7 +104,7 @@ public class MqttClientV2 extends MqttClient {
         }
 
         // call super
-        String[] topicFilters = (String[]) Arrays.stream(bridgeOptions).map(BridgeOption::getMqttTopic).toArray();
+        String[] topicFilters = Arrays.stream(bridgeOptions).map(BridgeOption::getMqttTopic).toArray(String[]::new);
         super.unsubscribe(topicFilters);
         log.info("unsubscribe success");
     }

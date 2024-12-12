@@ -52,6 +52,9 @@ public class Main {
         BridgeOption bridgeOption = BridgeOption.builder().mqttTopic(topic).kafkaTopic("mysink").props(props).build();
 
         mqttClientV2.publish(topic, json, 0, false, bridgeOption);
-        log.info("Success");
+        log.info("Success send");
+
+        mqttClientV2.unsubscribe(bridgeOption);
+        log.info("Unsubscribe ok");
     }
 }
