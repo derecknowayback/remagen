@@ -1,4 +1,4 @@
-package com.dereckchen.remagen.mqtt.models;
+package com.dereckchen.remagen.models;
 
 import lombok.Builder;
 import lombok.Data;

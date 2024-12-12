@@ -1,7 +1,7 @@
 package com.dereckchen.remagen.mqtt.demo;
 
 import com.dereckchen.remagen.mqtt.client.MqttClientV2;
-import com.dereckchen.remagen.mqtt.models.BridgeOption;
+import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.mqtt.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +51,7 @@ public class Main {
         );
         BridgeOption bridgeOption = BridgeOption.builder().mqttTopic(topic).kafkaTopic("mysink").props(props).build();
 
-        mqttClientV2.publish(topic, json, 0, false, bridgeOption);
+
         log.info("Success send");
 
         mqttClientV2.unsubscribe(bridgeOption);

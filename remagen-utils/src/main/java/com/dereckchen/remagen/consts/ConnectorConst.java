@@ -1,4 +1,4 @@
-package com.dereckchen.remagen.mqtt.consts;
+package com.dereckchen.remagen.consts;
 
 public class ConnectorConst {
 

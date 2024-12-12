@@ -1,9 +1,10 @@
 package com.dereckchen.remagen.mqtt.client;
 
 import com.dereckchen.remagen.kakfa.restful.client.KafkaConnectManager;
-import com.dereckchen.remagen.mqtt.models.BridgeOption;
+import com.dereckchen.remagen.models.BridgeMessage;
+import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.mqtt.models.KafkaServerConfig;
-import com.dereckchen.remagen.mqtt.util.ConnectorUtils;
+import com.dereckchen.remagen.utils.ConnectorUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -49,8 +50,6 @@ public class MqttClientV2 extends MqttClient {
         super(serverURI, clientId, persistence, executorService);
     }
 
-
-
     public void subscribe(BridgeOption[] bridgeOptions,int[] qos, IMqttMessageListener[] messageListeners) throws MqttException {
         // 建好connector
         List<String> allConnectors = kafkaConnectManager.getAllConnectors();
@@ -68,18 +67,13 @@ public class MqttClientV2 extends MqttClient {
     }
 
     // 重写publish方法
-    public void publish(String topic, byte[] payload, int qos, boolean retained, BridgeOption bridgeOption) throws MqttException {
-        MqttMessage message = new MqttMessage(payload);
-        message.setQos(qos);
-        message.setRetained(retained);
-        this.publish(topic, message, bridgeOption);
-    }
-
-    public void publish(String topic, MqttMessage message, BridgeOption bridgeOption) throws MqttException {
+    public void publish(String topic, BridgeMessage bridgeMessage, BridgeOption bridgeOption) throws MqttException {
         // 前置判断: connector是否存在?
         if (!topic.equals(bridgeOption.getMqttTopic())) {
             throw new RuntimeException(); // todo 抛出异常
         }
+
+        MqttMessage message = bridgeMessage.transferToMqttMessage();
 
         String connectorName = ConnectorUtils.getConnectorName(bridgeOption.getMqttTopic(), bridgeOption.getKafkaTopic());
         ConnectorInfo connector = kafkaConnectManager.getConnector(connectorName);

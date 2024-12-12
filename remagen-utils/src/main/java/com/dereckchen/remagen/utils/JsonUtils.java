@@ -36,6 +36,15 @@ public class JsonUtils {
         }
     }
 
+    public static <T> T fromJson(byte[] json, Class<T> clazz) {
+        try {
+            return mapper.readValue(json, clazz);
+        } catch (Exception e) {
+            log.error("JsonUtils fromJson error", e);
+            throw new RuntimeException("JsonUtils fromJson error", e);
+        }
+    }
+
     public static <T> T fromJson(String json, TypeReference<T> ref) {
         try {
             return mapper.readValue(json, ref);
@@ -44,6 +53,18 @@ public class JsonUtils {
             throw new RuntimeException("JsonUtils fromJson error", e);
         }
     }
+
+    public static <T> T fromJson(byte[] json, TypeReference<T> ref) {
+        try {
+            return mapper.readValue(json, ref);
+        } catch (Exception e) {
+            log.error("JsonUtils fromJson error", e);
+            throw new RuntimeException("JsonUtils fromJson error", e);
+        }
+    }
+
+
+
 
 
 }
