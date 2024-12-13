@@ -3,7 +3,9 @@ package com.dereckchen.remagen.kafka.connector.source;
 import com.dereckchen.remagen.kafka.connector.models.MQTTConfig;
 import com.dereckchen.remagen.models.BridgeMessage;
 import com.dereckchen.remagen.utils.JsonUtils;
+import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
 import org.eclipse.paho.client.mqttv3.*;
@@ -36,6 +38,9 @@ public class MqttSourceTask extends SourceTask {
 
     private ArrayDeque<SourceRecord> records;
     private ReentrantLock lock;
+    private Map<SourceRecord, Pair<Integer,Integer>> mqttIdMap;
+
+    private String latestTimeStamp;
 
     @Override
     public String version() {
@@ -50,6 +55,14 @@ public class MqttSourceTask extends SourceTask {
         retryCount = new AtomicInteger(0);
         records = new ArrayDeque<>();
         lock = new ReentrantLock(true);
+        mqttIdMap = new HashMap<>();
+
+        Map<String, Object> offset = context.offsetStorageReader().offset(getPartition());
+        if (offset != null) {
+            latestTimeStamp = (String) offset.get("timestamp"); // 恢复偏移
+        } else {
+            latestTimeStamp = "";  // 如果没有偏移，选择从头开始
+        }
     }
 
     @Override
@@ -78,7 +91,7 @@ public class MqttSourceTask extends SourceTask {
             mqttConfig = parseConfig(props);
             kafkaTopic = props.get(KAFKA_PROP_KEY);
             client = new MqttClient(mqttConfig.getBroker(), mqttConfig.getClientid(), new MemoryPersistence());
-
+            client.setManualAcks(true);
 
             // 连接参数
             MqttConnectOptions options = new MqttConnectOptions();
@@ -138,24 +151,34 @@ public class MqttSourceTask extends SourceTask {
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 log.info("Received message: {}" , message);
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
+                if (bridgeMessage.getTimestamp().compareTo(latestTimeStamp) <= 0) {
+                    client.messageArrivedComplete(message.getId(), message.getQos());
+                    return; // ignore old messages
+                }
 
                 lock.lock();
                 SourceRecord sourceRecord = new SourceRecord(
-                        Collections.unmodifiableMap(
-                                new HashMap<String,String>(){{
-                                        put(PARTITION_KAFKA_TOPIC_KEY,kafkaTopic);
-                                        put(PARTITION_MQTT_TOPIC_KEY, mqttConfig.getTopic());
-                                }}
-                        ),
+                        getPartition(),
                         Collections.singletonMap("timestamp", bridgeMessage.getTimestamp()),
                         kafkaTopic, null, bridgeMessage.getContent());
                 records.add(sourceRecord);
+                mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
                 lock.unlock();
             }
 
             @Override
             public void deliveryComplete(IMqttDeliveryToken token) {}
         });
+    }
+
+
+    public Map<String,String> getPartition () {
+        return Collections.unmodifiableMap(
+                new HashMap<String,String>(){{
+                    put(PARTITION_KAFKA_TOPIC_KEY,kafkaTopic);
+                    put(PARTITION_MQTT_TOPIC_KEY, mqttConfig.getTopic());
+                }}
+        );
     }
 
     public MQTTConfig parseConfig(Map<String, String> props) {
@@ -177,5 +200,17 @@ public class MqttSourceTask extends SourceTask {
             throw new RuntimeException(e);
         }
         log.info("Stopped MQTT Source Task");
+    }
+
+
+    @Override
+    public void commitRecord(SourceRecord record, RecordMetadata metadata) throws InterruptedException {
+        super.commitRecord(record, metadata); // actually do nothing, just nop
+        try {
+            Pair<Integer, Integer> idAndQos = mqttIdMap.get(record);
+            client.messageArrivedComplete(idAndQos.getKey(), idAndQos.getValue()); // ack the mqtt-msg
+        } catch (MqttException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
