@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 @Data
-public class  BridgeMessage {
+public class BridgeMessage {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -25,7 +25,7 @@ public class  BridgeMessage {
     private String content; // json format
     private String timestamp; // yyyy-MM-dd HH:mm:ss
 
-    public BridgeMessage(IBridgeMessageContent content,int qos, boolean retained) {
+    public BridgeMessage(IBridgeMessageContent content, int qos, boolean retained) {
         this.id = content.getMessageId();
         this.content = content.serializeToJsonStr();
         this.qos = qos;
@@ -41,8 +41,6 @@ public class  BridgeMessage {
         mqttMessage.setPayload(JsonUtils.toJsonBytes(this)); // serial self
         return mqttMessage;
     }
-
-
 
 
 }

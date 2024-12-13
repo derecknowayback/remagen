@@ -30,7 +30,7 @@ public class MQTTUtil {
             options.setKeepAliveInterval(0);
             options.setAutomaticReconnect(false);
             mqttClient.connect(options);
-        } catch (MqttException  exception) {
+        } catch (MqttException exception) {
             log.error("Connect to broker error, config: {}", mqttConfig, exception);
             throw new RuntimeException(exception);
         }

@@ -1,8 +1,8 @@
 package com.dereckchen.remagen.kafka.connector.sink;
 
 
-import com.dereckchen.remagen.kafka.connector.utils.MQTTUtil;
 import com.dereckchen.remagen.kafka.connector.models.MQTTConfig;
+import com.dereckchen.remagen.kafka.connector.utils.MQTTUtil;
 import com.dereckchen.remagen.utils.JsonUtils;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
@@ -46,7 +46,6 @@ public class MqttSinkTask extends SinkTask {
                 .broker(props.getOrDefault("mqtt.broker", ""))
                 .topic(props.getOrDefault("mqtt.topic", "")).build();
     }
-
 
 
     @Override

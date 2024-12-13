@@ -12,7 +12,7 @@ import java.util.Map;
 @Slf4j
 public class MqttSourceConnector extends SourceConnector {
 
-    private Map<String,String> props;
+    private Map<String, String> props;
 
     @Override
     public void start(Map<String, String> map) {

@@ -38,7 +38,7 @@ public class MqttSourceTask extends SourceTask {
 
     private ArrayDeque<SourceRecord> records;
     private ReentrantLock lock;
-    private Map<SourceRecord, Pair<Integer,Integer>> mqttIdMap;
+    private Map<SourceRecord, Pair<Integer, Integer>> mqttIdMap;
 
     private String latestTimeStamp;
 
@@ -119,7 +119,7 @@ public class MqttSourceTask extends SourceTask {
     public void setCallback(MqttConnectOptions options) {
         client.setCallback(new MqttCallback() {
             public void connectionLost(Throwable cause) {
-                log.error("connectionLost: {}", cause.getMessage(),cause);
+                log.error("connectionLost: {}", cause.getMessage(), cause);
 
                 // 尝试重连
                 while (running.get()) {
@@ -131,7 +131,7 @@ public class MqttSourceTask extends SourceTask {
                         log.info("Re-connect the mqttServer success ....");
                         break;
                     } catch (Exception e) {
-                        log.error("Retry failed for {} times", countTmp,e);
+                        log.error("Retry failed for {} times", countTmp, e);
                         if (countTmp == MAX_RETRY_COUNT) {
                             log.error("Retry failed for {} times, giving up...", countTmp);
                             running.set(false);
@@ -140,7 +140,7 @@ public class MqttSourceTask extends SourceTask {
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException ex) {
-                            log.error("Wait time exception...",ex);
+                            log.error("Wait time exception...", ex);
                         }
                     }
                 }
@@ -149,7 +149,7 @@ public class MqttSourceTask extends SourceTask {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                log.info("Received message: {}" , message);
+                log.info("Received message: {}", message);
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
                 if (bridgeMessage.getTimestamp().compareTo(latestTimeStamp) <= 0) {
                     client.messageArrivedComplete(message.getId(), message.getQos());
@@ -167,15 +167,16 @@ public class MqttSourceTask extends SourceTask {
             }
 
             @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {}
+            public void deliveryComplete(IMqttDeliveryToken token) {
+            }
         });
     }
 
 
-    public Map<String,String> getPartition () {
+    public Map<String, String> getPartition() {
         return Collections.unmodifiableMap(
-                new HashMap<String,String>(){{
-                    put(PARTITION_KAFKA_TOPIC_KEY,kafkaTopic);
+                new HashMap<String, String>() {{
+                    put(PARTITION_KAFKA_TOPIC_KEY, kafkaTopic);
                     put(PARTITION_MQTT_TOPIC_KEY, mqttConfig.getTopic());
                 }}
         );

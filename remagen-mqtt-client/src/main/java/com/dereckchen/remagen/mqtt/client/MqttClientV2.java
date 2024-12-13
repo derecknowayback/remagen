@@ -50,7 +50,7 @@ public class MqttClientV2 extends MqttClient {
         super(serverURI, clientId, persistence, executorService);
     }
 
-    public void subscribe(BridgeOption[] bridgeOptions,int[] qos, IMqttMessageListener[] messageListeners) throws MqttException {
+    public void subscribe(BridgeOption[] bridgeOptions, int[] qos, IMqttMessageListener[] messageListeners) throws MqttException {
         // 建好connector
         List<String> allConnectors = kafkaConnectManager.getAllConnectors();
         for (int i = 0; i < bridgeOptions.length; i++) {
@@ -63,7 +63,7 @@ public class MqttClientV2 extends MqttClient {
 
         // call super
         String[] topicFilters = (String[]) Arrays.stream(bridgeOptions).map(BridgeOption::getMqttTopic).toArray();
-        super.subscribe(topicFilters,qos,messageListeners);
+        super.subscribe(topicFilters, qos, messageListeners);
     }
 
     // 重写publish方法

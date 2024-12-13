@@ -8,9 +8,8 @@ import org.eclipse.jetty.http.HttpMethod;
 @Data
 @Slf4j
 public class DeleteConnectorRequest implements RestfulRequest<Void> {
-    private String connectorName;
-
     private static final String DELETE_CONNECTOR_URI_PATTERN = "/connectors/%s";
+    private String connectorName;
 
     public DeleteConnectorRequest(String connectorName) {
         this.connectorName = connectorName;

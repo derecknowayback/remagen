@@ -15,7 +15,8 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 import java.util.Map;
 
-import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.*;
+import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_BRIDGE_OPTION_KEY;
+import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY;
 
 @Data
 @Slf4j
@@ -37,7 +38,7 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
         String topic = producerRecord.topic();
         BridgeOption bridgeOption = getBridgeOption(headers);
         if (bridgeOption == null || !topic.equals(bridgeOption.getKafkaTopic())) {
-            log.error("BridgeOption missing or kafkaTopic conflicts: {}, record: {}", bridgeOption,producerRecord);
+            log.error("BridgeOption missing or kafkaTopic conflicts: {}, record: {}", bridgeOption, producerRecord);
             throw new RuntimeException("BridgeOption missing or kafkaTopic conflicts");
         }
 
@@ -48,7 +49,7 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
         ConnectorInfo connector = kafkaConnectManager.getConnector(connectorName);
         if (connector == null) {
             log.warn("connector:{} not exist", connectorName);
-            kafkaConnectManager.createConnector(connectorName,bridgeOption.getProps());
+            kafkaConnectManager.createConnector(connectorName, bridgeOption.getProps());
         }
 
         return producerRecord;

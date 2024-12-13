@@ -5,5 +5,4 @@ public class KafkaInterceptorConst {
     public static final String KAFKA_HEADER_BRIDGE_OPTION_KEY = "bridgeOption";
 
 
-
 }

@@ -1,7 +1,7 @@
 package com.dereckchen.remagen.mqtt.demo;
 
-import com.dereckchen.remagen.mqtt.client.MqttClientV2;
 import com.dereckchen.remagen.models.BridgeOption;
+import com.dereckchen.remagen.mqtt.client.MqttClientV2;
 import com.dereckchen.remagen.mqtt.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;

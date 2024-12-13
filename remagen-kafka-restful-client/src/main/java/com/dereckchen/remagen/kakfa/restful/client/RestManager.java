@@ -1,7 +1,6 @@
 package com.dereckchen.remagen.kakfa.restful.client;
 
 
-
 import com.dereckchen.remagen.kakfa.restful.request.RestfulRequest;
 import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.Data;
