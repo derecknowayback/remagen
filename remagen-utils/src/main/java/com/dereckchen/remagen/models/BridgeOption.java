@@ -1,15 +1,17 @@
 package com.dereckchen.remagen.models;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
 @Data
-@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class BridgeOption {
     private String mqttTopic;
     private String kafkaTopic;
-    private String kafkaKey;
     private Map<String, String> props;
 }

@@ -26,6 +26,17 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
     private KafkaConnectManager kafkaConnectManager;
 
     @Override
+    public void configure(Map<String, ?> map) {
+        // do nothing
+        log.info("KafkaInterceptor configure: {}",map);
+        String host = (String)map.get("kafkaConnectManager.host");
+        String port = (String)map.get("kafkaConnectManager.port");
+        boolean needHttps = Boolean.parseBoolean((String) map.get("kafkaConnectManager.needHttps"));
+        this.kafkaConnectManager = new KafkaConnectManager(host,port,needHttps);
+    }
+
+
+    @Override
     public ProducerRecord<String, String> onSend(ProducerRecord<String, String> producerRecord) {
         Headers headers = producerRecord.headers();
         if (!isRecordNeedBridge(headers)) {
@@ -80,17 +91,13 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
 
     @Override
     public void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {
-        log.error("KafkaInterceptor onAcknowledgement error. RecordMetadata: {}", recordMetadata, e);
-
+        if (e != null) {
+            log.error("KafkaInterceptor onAcknowledgement error. RecordMetadata: {}", recordMetadata, e);
+        }
     }
 
     @Override
     public void close() {
-        // do nothing
-    }
-
-    @Override
-    public void configure(Map<String, ?> map) {
         // do nothing
     }
 }

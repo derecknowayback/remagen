@@ -70,7 +70,7 @@ public class MqttClientV2 extends MqttClient {
     public void publish(String topic, BridgeMessage bridgeMessage, BridgeOption bridgeOption) throws MqttException {
         // 前置判断: connector是否存在?
         if (!topic.equals(bridgeOption.getMqttTopic())) {
-            throw new RuntimeException(); // todo 抛出异常
+            throw new RuntimeException("Kafka topic conflicts!");
         }
 
         MqttMessage message = bridgeMessage.transferToMqttMessage();

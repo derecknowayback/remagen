@@ -49,7 +49,7 @@ public class Main {
                     put("topics", topic);
                 }}
         );
-        BridgeOption bridgeOption = BridgeOption.builder().mqttTopic(topic).kafkaTopic("mysink").props(props).build();
+        BridgeOption bridgeOption = new BridgeOption(topic, "mysink", props);
 
 
         log.info("Success send");

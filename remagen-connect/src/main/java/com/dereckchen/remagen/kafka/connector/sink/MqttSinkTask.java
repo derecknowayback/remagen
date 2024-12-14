@@ -57,7 +57,6 @@ public class MqttSinkTask extends SinkTask {
             return;
         }
 
-
         final SinkRecord first = records.iterator().next();
         final int recordsCount = records.size();
         log.info(
@@ -86,7 +85,6 @@ public class MqttSinkTask extends SinkTask {
             }
         });
     }
-
 
     @Override
     public void stop() {
