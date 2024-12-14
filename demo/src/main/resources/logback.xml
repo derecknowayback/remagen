@@ -7,9 +7,9 @@
 
     <!-- 设置根日志级别为INFO -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="CONSOLE"/>
     </root>
 
     <!-- 单独设置Netty日志级别为WARN -->
-    <logger name="io.netty" level="WARN" />
+    <logger name="io.netty" level="WARN"/>
 </configuration>

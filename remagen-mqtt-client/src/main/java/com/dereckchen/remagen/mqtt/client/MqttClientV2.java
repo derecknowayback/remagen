@@ -3,7 +3,7 @@ package com.dereckchen.remagen.mqtt.client;
 import com.dereckchen.remagen.kakfa.restful.client.KafkaConnectManager;
 import com.dereckchen.remagen.models.BridgeMessage;
 import com.dereckchen.remagen.models.BridgeOption;
-import com.dereckchen.remagen.mqtt.models.KafkaServerConfig;
+import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.ConnectorUtils;
 import lombok.Getter;
 import lombok.Setter;

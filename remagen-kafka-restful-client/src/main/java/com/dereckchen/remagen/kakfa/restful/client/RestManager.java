@@ -1,8 +1,6 @@
 package com.dereckchen.remagen.kakfa.restful.client;
 
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import com.dereckchen.remagen.kakfa.restful.request.RestfulRequest;
 import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.Data;

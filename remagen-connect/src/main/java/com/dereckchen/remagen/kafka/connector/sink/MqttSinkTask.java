@@ -1,9 +1,9 @@
 package com.dereckchen.remagen.kafka.connector.sink;
 
 
-import com.dereckchen.remagen.kafka.connector.models.MQTTConfig;
-import com.dereckchen.remagen.kafka.connector.utils.MQTTUtil;
+import com.dereckchen.remagen.models.MQTTConfig;
 import com.dereckchen.remagen.utils.JsonUtils;
+import com.dereckchen.remagen.utils.MQTTUtil;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -74,7 +74,7 @@ public class MqttSinkTask extends SinkTask {
                 Object obj = record.value();
                 MqttMessage mqttMessage = new MqttMessage(JsonUtils.toJsonBytes(obj));
                 if (mqttClient == null) {
-                    mqttClient = MQTTUtil.getMQTTClient(config);
+                    mqttClient = MQTTUtil.getMqttClient(config);
                     mqttClient.publish(config.getTopic(), mqttMessage);
                 } else {
                     mqttClient.publish(config.getTopic(), mqttMessage);

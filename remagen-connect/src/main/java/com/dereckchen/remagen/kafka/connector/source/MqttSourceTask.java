@@ -1,65 +1,43 @@
 package com.dereckchen.remagen.kafka.connector.source;
 
-import com.dereckchen.remagen.kafka.connector.models.MQTTConfig;
+import com.dereckchen.remagen.consts.ConnectorConst;
+import com.dereckchen.remagen.models.BridgeConfig;
 import com.dereckchen.remagen.models.BridgeMessage;
+import com.dereckchen.remagen.models.MQTTConfig;
+import com.dereckchen.remagen.models.Pair;
 import com.dereckchen.remagen.utils.JsonUtils;
+import com.dereckchen.remagen.utils.KafkaUtils;
+import com.dereckchen.remagen.utils.MQTTUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.source.SourceTask;
+import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.eclipse.paho.client.mqttv3.*;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static com.dereckchen.remagen.utils.ConnectorUtils.parseConfig;
+import static com.dereckchen.remagen.utils.KafkaUtils.getPartition;
+import static com.dereckchen.remagen.utils.MQTTUtil.defaultOptions;
+import static com.dereckchen.remagen.utils.MQTTUtil.tryReconnect;
 
 @Slf4j
 public class MqttSourceTask extends SourceTask {
 
 
-    private static final int MAX_RETRY_COUNT = 10;
-
-    private static final String KAFKA_PROP_KEY = "topic";
-
-    private static final String PARTITION_KAFKA_TOPIC_KEY = "kafkaTopic";
-    private static final String PARTITION_MQTT_TOPIC_KEY = "mqttTopic";
-
-    private Map<String, String> props;
-    private String kafkaTopic;
-
-    private AtomicBoolean running;
-    private AtomicInteger retryCount;
+    private BridgeConfig config;
 
     private MqttClient client;
-    private MQTTConfig mqttConfig;
-    private MqttConnectOptions options;
 
     private ArrayDeque<SourceRecord> records;
     private ReentrantLock lock;
     private Map<SourceRecord, Pair<Integer, Integer>> mqttIdMap;
-
-    private String latestTimeStamp = "";
-
-
-    private static class Pair<K,V> {
-        private K key;
-        private V value;
-
-        public Pair(K key, V value) {
-            this.key = key;
-            this.value = value;
-        }
-
-        public K getKey() {
-            return key;
-        }
-
-        public V getValue() {
-            return value;
-        }
-    }
+    private AtomicBoolean running;
+    private String latestTimeStamp;
 
     @Override
     public String version() {
@@ -68,38 +46,50 @@ public class MqttSourceTask extends SourceTask {
 
     @Override
     public void start(Map<String, String> map) {
-        props = map;
+        log.info("Starting MqttSourceTask with properties: {}", map); // 打印所有属性
+        config = parseConfig(map);
+
+        // 内部对象实例化
         running = new AtomicBoolean(true);
-        retryCount = new AtomicInteger(0);
         records = new ArrayDeque<>();
         lock = new ReentrantLock(true);
-        mqttIdMap = new HashMap<>();
+        mqttIdMap = new ConcurrentHashMap<>(); // thread safe, remove key freely
+        latestTimeStamp = "";
 
         // 初始化mqtt客户端
         initializeMqttClient();
 
-        // 获取偏移量
-        Map<String, Object> offset = context.offsetStorageReader().offset(getPartition());
-        log.info("offset: {}", offset);
-        if (offset != null) {
-            latestTimeStamp = (String) offset.getOrDefault("timestamp",""); // 恢复偏移
-        } else {
-            latestTimeStamp = "";  // 如果没有偏移，选择从头开始
-        }
+        // 更新offset
+        getOffset();
 
-
+        // 设置回调
         setCallback();
-        log.info("Start listening to topics {}", mqttConfig.getTopic());
+
+        // 开始监听
+        subscribe();
+    }
+
+    public void subscribe() {
         try {
-            client.subscribe(mqttConfig.getTopic(), 0);
+            client.subscribe(config.getMqttConfig().getTopic(), 0);
         } catch (MqttException e) {
             log.error("Error subscribing to topic", e);
             throw new RuntimeException(e);
         }
+    }
 
 
-        // 打印所有属性
-        log.info("Starting MqttSourceTask with properties: {}" , map);
+    public void getOffset() {
+        OffsetStorageReader offsetStorageReader = context.offsetStorageReader();
+        // 获取偏移量
+        Map<String, Object> offset = offsetStorageReader.offset(
+                getPartition(config.getKafkaServerConfig().getKafkaTopic(),
+                        config.getMqttConfig().getTopic()));
+        log.info("offset from kafka: {}", offset);
+        if (offset != null) {
+            latestTimeStamp = (String) offset.getOrDefault(
+                    "timestamp", ""); // 恢复偏移
+        }
     }
 
     @Override
@@ -127,37 +117,29 @@ public class MqttSourceTask extends SourceTask {
 
     public void initializeMqttClient() {
         try {
-            mqttConfig = parseConfig(props);
-            kafkaTopic = props.get(KAFKA_PROP_KEY);
-            client = new MqttClient(mqttConfig.getBroker(), mqttConfig.getClientid(), new MemoryPersistence());
-            client.setManualAcks(true);
-
-            // 连接参数
-            options = new MqttConnectOptions();
-            options.setUserName(mqttConfig.getUsername());
-            options.setPassword(mqttConfig.getPassword().toCharArray());
-            options.setConnectionTimeout(0);
-            options.setKeepAliveInterval(0);
-            options.setAutomaticReconnect(true);
-
-            client.connect(options);
+            client = MQTTUtil.getMqttClient(config.getMqttConfig());
+            MqttConnectOptions mqttConnectOptions = MQTTUtil.defaultOptions(config.getMqttConfig());
+            client.connect(mqttConnectOptions);
         } catch (Exception e) {
             log.error("Error initializing MQTT client", e);
             throw new RuntimeException(e);
         }
     }
 
-
     public void setCallback() {
         client.setCallback(new MqttCallback() {
             public void connectionLost(Throwable cause) {
                 log.error("connectionLost: {}", cause.getMessage(), cause);
-                tryReconnect();
+                MQTTConfig mqttConfig = config.getMqttConfig();
+                synchronized (client) {
+                    tryReconnect(running::get, client, defaultOptions(mqttConfig), mqttConfig);
+                }
             }
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                log.info("Received message: {}", message);
+                log.info("Received topic[{}] message: {} ", topic, message);
+
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
                 if (bridgeMessage.getTimestamp().compareTo(latestTimeStamp) <= 0) {
                     client.messageArrivedComplete(message.getId(), message.getQos());
@@ -167,9 +149,9 @@ public class MqttSourceTask extends SourceTask {
 
                 lock.lock();
                 SourceRecord sourceRecord = new SourceRecord(
-                        getPartition(),
-                        Collections.singletonMap("timestamp", bridgeMessage.getTimestamp()),
-                        kafkaTopic, null, bridgeMessage.getContent());
+                        KafkaUtils.getPartition(config.getKafkaServerConfig().getKafkaTopic(), topic),
+                        Collections.singletonMap(ConnectorConst.OFFSET_TIMESTAMP_KEY, bridgeMessage.getTimestamp()),
+                        config.getKafkaServerConfig().getKafkaTopic(), null, bridgeMessage.getContent());
                 records.add(sourceRecord);
                 mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
                 lock.unlock();
@@ -179,54 +161,6 @@ public class MqttSourceTask extends SourceTask {
             public void deliveryComplete(IMqttDeliveryToken token) {
             }
         });
-    }
-
-    public void tryReconnect () {
-        // 尝试重连
-        while (running.get()) {
-            int countTmp = retryCount.incrementAndGet();
-            try {
-                log.info("Trying to connect the mqttServer ....");
-                log.info("Options: {}", options);
-                log.info("Config: {}",mqttConfig);
-                client.connect(options);
-                client.subscribe(mqttConfig.getTopic(), 0);
-                log.info("Re-connect the mqttServer success ....");
-                break;
-            } catch (Exception e) {
-                log.error("Retry failed for {} times", countTmp, e);
-                if (countTmp == MAX_RETRY_COUNT) {
-                    log.error("Retry failed for {} times, giving up...", countTmp);
-                    running.set(false);
-                    throw new RuntimeException(e);
-                }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                    log.error("Wait time exception...", ex);
-                }
-            }
-        }
-        retryCount.set(0); // reset counter
-    }
-
-
-    public Map<String, String> getPartition() {
-        return Collections.unmodifiableMap(
-                new HashMap<String, String>() {{
-                    put(PARTITION_KAFKA_TOPIC_KEY, kafkaTopic);
-                    put(PARTITION_MQTT_TOPIC_KEY, mqttConfig.getTopic());
-                }}
-        );
-    }
-
-    public MQTTConfig parseConfig(Map<String, String> props) {
-        return MQTTConfig.builder()
-                .password(props.getOrDefault("mqtt.password", ""))
-                .clientid(props.getOrDefault("mqtt.clientid", ""))
-                .username(props.getOrDefault("mqtt.username", ""))
-                .broker(props.getOrDefault("mqtt.broker", ""))
-                .topic(props.getOrDefault("mqtt.topic", "")).build();
     }
 
     @Override
@@ -245,37 +179,15 @@ public class MqttSourceTask extends SourceTask {
     @Override
     public void commitRecord(SourceRecord record, RecordMetadata metadata) throws InterruptedException {
         super.commitRecord(record, metadata); // actually do nothing, just nop
+        Pair<Integer, Integer> idAndQos = mqttIdMap.get(record);
         try {
-            Pair<Integer, Integer> idAndQos = mqttIdMap.get(record);
             client.messageArrivedComplete(idAndQos.getKey(), idAndQos.getValue()); // ack the mqtt-msg
             log.info("Ack mqtt message with id: {}", idAndQos.getKey());
-            log.info("Success send record: {}",record.value());
-
+            log.info("Success send record: {}", record.value());
         } catch (MqttException e) {
+            log.error("Ack mqtt message failed for record:{}, mqtt-msgId:{}", record, idAndQos.getKey(), e);
             throw new RuntimeException(e);
         }
-    }
-
-    public void monitor () {
-        // 创建一个子线程不断发送消息
-        new Thread(() -> {
-            while (true) {
-                log.info("Monitoring... :{}",client.isConnected());
-                if (!client.isConnected()) {
-                    tryReconnect();
-                }
-                try {
-                    client.publish("monitor", "hello world".getBytes(), 0, false);
-                } catch (MqttException e) {
-                    log.error("Monitoring failed...", e);
-                }
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    log.error("Interrupted...");
-                }
-            }
-        }).start();
     }
 
 }

@@ -3,8 +3,8 @@ package com.dereckchen.remagen.demo;
 import com.dereckchen.remagen.models.BridgeMessage;
 import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.models.IBridgeMessageContent;
+import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.mqtt.client.MqttClientV2;
-import com.dereckchen.remagen.mqtt.models.KafkaServerConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,9 +28,9 @@ public class MqttSourceDemo {
         mqttClientV2.connect();
 
 
-        Map<String, String> props = getProps(mqtt_topic,kafka_topic, clientId);
+        Map<String, String> props = getProps(mqtt_topic, kafka_topic, clientId);
 
-        BridgeOption bridgeOption = new BridgeOption(mqtt_topic,kafka_topic,props);
+        BridgeOption bridgeOption = new BridgeOption(mqtt_topic, kafka_topic, props);
 
         for (int i = 0; i < 20; i++) {
             BridgeMessage msg = new BridgeMessage(new IBridgeMessageContent() {
@@ -48,7 +48,7 @@ public class MqttSourceDemo {
         }
     }
 
-    private static Map<String, String> getProps(String mqtt_topic, String kafka_topic,String clientId) {
+    private static Map<String, String> getProps(String mqtt_topic, String kafka_topic, String clientId) {
         Map<String, String> props = new HashMap<>();
         props.put("key.converter", "org.apache.kafka.connect.storage.StringConverter");
         props.put("value.converter", "org.apache.kafka.connect.storage.StringConverter");

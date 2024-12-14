@@ -1,4 +1,4 @@
-package com.dereckchen.remagen.kafka.connector.models;
+package com.dereckchen.remagen.models;
 
 import lombok.Builder;
 import lombok.Data;

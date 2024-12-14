@@ -28,11 +28,11 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
     @Override
     public void configure(Map<String, ?> map) {
         // do nothing
-        log.info("KafkaInterceptor configure: {}",map);
-        String host = (String)map.get("kafkaConnectManager.host");
-        String port = (String)map.get("kafkaConnectManager.port");
+        log.info("KafkaInterceptor configure: {}", map);
+        String host = (String) map.get("kafkaConnectManager.host");
+        String port = (String) map.get("kafkaConnectManager.port");
         boolean needHttps = Boolean.parseBoolean((String) map.get("kafkaConnectManager.needHttps"));
-        this.kafkaConnectManager = new KafkaConnectManager(host,port,needHttps);
+        this.kafkaConnectManager = new KafkaConnectManager(host, port, needHttps);
     }
 
 
