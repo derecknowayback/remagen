@@ -15,6 +15,8 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
 import java.util.Map;
 
+import static com.dereckchen.remagen.consts.ConnectorConst.INTERCEPTOR_PROP_HOST;
+import static com.dereckchen.remagen.consts.ConnectorConst.INTERCEPTOR_PROP_PORT;
 import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_BRIDGE_OPTION_KEY;
 import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY;
 
@@ -29,8 +31,8 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
     public void configure(Map<String, ?> map) {
         // do nothing
         log.info("KafkaInterceptor configure: {}", map);
-        String host = (String) map.get("kafkaConnectManager.host");
-        String port = (String) map.get("kafkaConnectManager.port");
+        String host = (String) map.get(INTERCEPTOR_PROP_HOST);
+        String port = (String) map.get(INTERCEPTOR_PROP_PORT);
         boolean needHttps = Boolean.parseBoolean((String) map.get("kafkaConnectManager.needHttps"));
         this.kafkaConnectManager = new KafkaConnectManager(host, port, needHttps);
     }
