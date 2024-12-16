@@ -8,6 +8,12 @@
     <artifactId>remagen-mqtt-client</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <!-- 或者使用更高版本，如 11、17 等 -->
+    </properties>
+
     <dependencies>
         <!--  内部模块  -->
         <dependency>
