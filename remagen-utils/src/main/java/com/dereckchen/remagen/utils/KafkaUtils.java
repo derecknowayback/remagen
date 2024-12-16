@@ -20,7 +20,7 @@ public class KafkaUtils {
                 .build();
     }
 
-    public static Map<String, String> getPartition(String kafkaTopic, String mqttTopic) {
+    public static Map<String, String> getPartition(final String kafkaTopic, final String mqttTopic) {
         return Collections.unmodifiableMap(
                 new HashMap<String, String>() {{
                     put(PARTITION_KAFKA_TOPIC_KEY, kafkaTopic);

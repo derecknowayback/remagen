@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   emqx:
     image: emqx/emqx:latest
@@ -12,25 +10,60 @@ services:
     networks:
       - local-network
 
+  # for detail, see https://medium.com/@katyagorshkova/docker-compose-for-running-kafka-in-kraft-mode-20c535c48b1a
+  kafka-gen:
+    image: apache/kafka:3.8.0
+    hostname: kafka-gen
+    container_name: kafka-gen
+    volumes:
+      - /Users/dereckchen/code/graduate/remagen/docker/scripts/create_cluster_id.sh:/tmp/create_cluster_id.sh
+      - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
+    command: "bash -c '/tmp/create_cluster_id.sh'"
+
   kafka1:
     image: apache/kafka:3.8.0
+    hostname: kafka1
+    container_name: kafka1
     ports:
       - "9092:9092"
-      - "8848:8848"
     volumes:
-      - /Users/dereckchen/kafka1:/opt/kafka
+      - /Users/dereckchen/code/graduate/remagen/config/kraft/server1.properties:/opt/kafka/config/kraft/server1.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
+      - /Users/dereckchen/code/graduate/remagen/docker/scripts/update_run.sh:/tmp/update_run.sh
     networks:
       - local-network
+    command: "bash -c '/tmp/update_run.sh server1'"
+
 
   kafka2:
     image: apache/kafka:3.8.0
+    hostname: kafka2
+    container_name: kafka2
     ports:
       - "9093:9092"
-      - "8849:8849"
     volumes:
-      - /Users/dereckchen/kafka2:/opt/kafka
+      - /Users/dereckchen/code/graduate/remagen/config/kraft/server2.properties:/opt/kafka/config/kraft/server2.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
+      - /Users/dereckchen/code/graduate/remagen/docker/scripts/update_run.sh:/tmp/update_run.sh
     networks:
       - local-network
+    command: "bash -c '/tmp/update_run.sh server2'"
+
+
+  kafka3:
+    image: apache/kafka:3.8.0
+    hostname: kafka3
+    container_name: kafka3
+    ports:
+      - "9094:9092"
+    volumes:
+      - /Users/dereckchen/code/graduate/remagen/config/kraft/server3.properties:/opt/kafka/config/kraft/server3.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
+      - /Users/dereckchen/code/graduate/remagen/docker/scripts/update_run.sh:/tmp/update_run.sh
+    networks:
+      - local-network
+    command: "bash -c '/tmp/update_run.sh server3'"
+
 
 networks:
   local-network:
