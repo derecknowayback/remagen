@@ -7,6 +7,7 @@ import com.dereckchen.remagen.utils.MQTTUtil;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.slf4j.Logger;
@@ -74,7 +75,7 @@ public class MqttSinkTask extends SinkTask {
                 Object obj = record.value();
                 MqttMessage mqttMessage = new MqttMessage(JsonUtils.toJsonBytes(obj));
                 if (mqttClient == null) {
-                    mqttClient = MQTTUtil.getMqttClient(config);
+                    initMqttClient();
                     mqttClient.publish(config.getTopic(), mqttMessage);
                 } else {
                     mqttClient.publish(config.getTopic(), mqttMessage);
@@ -84,6 +85,12 @@ public class MqttSinkTask extends SinkTask {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    public void initMqttClient () throws MqttException {
+        mqttClient = MQTTUtil.getMqttClient(config);
+        MqttConnectOptions mqttConnectOptions = MQTTUtil.defaultOptions(config);
+        mqttClient.connect(mqttConnectOptions);
     }
 
     @Override
