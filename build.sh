@@ -29,3 +29,6 @@ cd ..
 echo "=== connect 构建完成 ==="
 
 echo "所有模块构建完成！"
+
+echo "拷贝 jar 到 docker libs 目录"
+cp remagen-connect/target/remagen-connect-1.0-SNAPSHOT.jar docker/libs

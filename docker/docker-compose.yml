@@ -24,15 +24,20 @@ services:
     image: apache/kafka:3.8.0
     hostname: kafka1
     container_name: kafka1
+    environment:
+      NEED_CREATE_TOPICS: "true" # 由kafka1来创建topics
     ports:
       - "9092:9092"
+      - "8848:8848"
     volumes:
-      - /Users/dereckchen/code/graduate/remagen/config/kraft/server1.properties:/opt/kafka/config/kraft/server1.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/config/server1.properties:/opt/kafka/config/kraft/server.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/config/connect-distributed1.properties:/opt/kafka/config/connect-distributed.properties
       - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
       - /Users/dereckchen/code/graduate/remagen/docker/scripts/update_run.sh:/tmp/update_run.sh
+      - /Users/dereckchen/code/graduate/remagen/docker/libs/remagen-connect-1.0-SNAPSHOT.jar:/opt/kafka/libs/remagen-connect-1.0-SNAPSHOT.jar
     networks:
       - local-network
-    command: "bash -c '/tmp/update_run.sh server1'"
+    command: "bash -c '/tmp/update_run.sh'"
 
 
   kafka2:
@@ -41,13 +46,16 @@ services:
     container_name: kafka2
     ports:
       - "9093:9092"
+      - "8849:8848"
     volumes:
-      - /Users/dereckchen/code/graduate/remagen/config/kraft/server2.properties:/opt/kafka/config/kraft/server2.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/config/server2.properties:/opt/kafka/config/kraft/server.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/config/connect-distributed2.properties:/opt/kafka/config/connect-distributed.properties
       - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
       - /Users/dereckchen/code/graduate/remagen/docker/scripts/update_run.sh:/tmp/update_run.sh
+      - /Users/dereckchen/code/graduate/remagen/docker/libs/remagen-connect-1.0-SNAPSHOT.jar:/opt/kafka/libs/remagen-connect-1.0-SNAPSHOT.jar
     networks:
       - local-network
-    command: "bash -c '/tmp/update_run.sh server2'"
+    command: "bash -c '/tmp/update_run.sh'"
 
 
   kafka3:
@@ -56,13 +64,16 @@ services:
     container_name: kafka3
     ports:
       - "9094:9092"
+      - "8850:8848"
     volumes:
-      - /Users/dereckchen/code/graduate/remagen/config/kraft/server3.properties:/opt/kafka/config/kraft/server3.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/config/server3.properties:/opt/kafka/config/kraft/server.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/config/connect-distributed1.properties:/opt/kafka/config/connect-distributed.properties
       - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
       - /Users/dereckchen/code/graduate/remagen/docker/scripts/update_run.sh:/tmp/update_run.sh
+      - /Users/dereckchen/code/graduate/remagen/docker/libs/remagen-connect-1.0-SNAPSHOT.jar:/opt/kafka/libs/remagen-connect-1.0-SNAPSHOT.jar
     networks:
       - local-network
-    command: "bash -c '/tmp/update_run.sh server3'"
+    command: "bash -c '/tmp/update_run.sh'"
 
 
 networks:
