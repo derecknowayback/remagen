@@ -67,7 +67,7 @@ services:
       - "8850:8848"
     volumes:
       - /Users/dereckchen/code/graduate/remagen/docker/config/server3.properties:/opt/kafka/config/kraft/server.properties
-      - /Users/dereckchen/code/graduate/remagen/docker/config/connect-distributed1.properties:/opt/kafka/config/connect-distributed.properties
+      - /Users/dereckchen/code/graduate/remagen/docker/config/connect-distributed3.properties:/opt/kafka/config/connect-distributed.properties
       - /Users/dereckchen/code/graduate/remagen/docker/clusterID:/tmp/clusterID
       - /Users/dereckchen/code/graduate/remagen/docker/scripts/update_run.sh:/tmp/update_run.sh
       - /Users/dereckchen/code/graduate/remagen/docker/libs/remagen-connect-1.0-SNAPSHOT.jar:/opt/kafka/libs/remagen-connect-1.0-SNAPSHOT.jar
