@@ -14,13 +14,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.apache.kafka.clients.producer.ProducerConfig.METADATA_MAX_AGE_CONFIG;
+
 @Slf4j
 public class MqttSinkDemo {
     public static void main(String[] args) {
         // Kafka broker地址
-        String bootstrapServers = "localhost:9092";
+        String bootstrapServers = "localhost:9092,localhost:9093,localhost:9094";
         // 主题名称
-        String topic = "kafka_mqtt_sink";
+        String topic = "bnew_top";
         String mqttTopic = "test_mqtt";
 
 
@@ -30,6 +32,8 @@ public class MqttSinkDemo {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, "com.dereckchen.remagen.kafka.interceptor.BridgeProducerInterceptor");
+        props.put(ProducerConfig.METADATA_MAX_AGE_CONFIG,"3000");
+        props.put(ProducerConfig.RETRIES_CONFIG, "3");
 
         props.put("kafkaConnectManager.host", "127.0.0.1");
         props.put("kafkaConnectManager.port", "8848");
@@ -64,6 +68,11 @@ public class MqttSinkDemo {
                     log.error("Error sending message: {}", exception.getMessage());
                 }
             });
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

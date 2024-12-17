@@ -41,3 +41,6 @@ Icon
 # compile class
 target/
 *.class
+
+config/
+*/dependency-reduced-pom.xml
