@@ -1,6 +1,10 @@
 - 当前Kafka创建Connector失败并不阻塞发送
 - 多个连接器之间不能互相转发数据:
-  - Solution: https://rmoff.net/2019/11/22/common-mistakes-made-when-configuring-multiple-kafka-connect-workers/
+    - Solution: https://rmoff.net/2019/11/22/common-mistakes-made-when-configuring-multiple-kafka-connect-workers/
 - Not a leader
-  - https://stackoverflow.com/questions/76917121/kafka-error-org-apache-kafka-common-errors-notleaderorfollowerexception-not-lead
-  - 
+    - https://stackoverflow.com/questions/76917121/kafka-error-org-apache-kafka-common-errors-notleaderorfollowerexception-not-lead
+    - https://blog.csdn.net/hdyrz/article/details/83014269
+    - 目前看和分区有关。只要处理你请求的broker没有这个分区,就完蛋了 / 如果在分区里有,那就没事
+    - https://blog.csdn.net/qq_16504067/article/details/109336485
+    - https://blog.csdn.net/fu123123fu/article/details/100144509
+    - https://stackoverflow.com/questions/77561746/is-there-a-way-to-use-a-topic-with-multiple-partition-as-config-storage-topic

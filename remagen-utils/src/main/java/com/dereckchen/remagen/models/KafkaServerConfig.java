@@ -9,5 +9,5 @@ public class KafkaServerConfig {
     private String host;
     private String port;
     private boolean needHttps;
-    private String kafkaTopic; // option, for sink connector
+    private String kafkaTopics; // can be multi topics separate by commas
 }

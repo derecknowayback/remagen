@@ -2,6 +2,8 @@ package com.dereckchen.remagen.utils;
 
 
 import com.dereckchen.remagen.consts.ConnectorConst;
+import com.dereckchen.remagen.exceptions.PanicException;
+import com.dereckchen.remagen.exceptions.RetryableException;
 import com.dereckchen.remagen.models.MQTTConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -27,14 +29,14 @@ public class MQTTUtil {
     }
 
 
-    public static MqttClient getMqttClient(MQTTConfig mqttConfig) throws MqttException {
+    public static MqttClient getMqttClient(MQTTConfig mqttConfig) {
         try {
             MqttClient mqttClient = new MqttClient(mqttConfig.getBroker(), mqttConfig.getClientid(), new MemoryPersistence());
             mqttClient.setManualAcks(true); // manage ack by ourselves
             return mqttClient;
         } catch (MqttException exception) {
             log.error("Create mqttClient and connect to broker error, config: {}", mqttConfig, exception);
-            throw exception;
+            throw new RetryableException(exception);
         }
     }
 
@@ -50,7 +52,7 @@ public class MQTTUtil {
 
 
     public static void tryReconnect(BooleanSupplier running, MqttClient client,
-                                    MqttConnectOptions options, MQTTConfig mqttConfig) {
+                                    MqttConnectOptions options, MQTTConfig mqttConfig) throws PanicException {
         // try reconnect
         int countTmp = 0; // local variable, concurrent safe
         while (running.getAsBoolean()) {
@@ -59,6 +61,7 @@ public class MQTTUtil {
                 log.info("Trying to connect the mqttServer for {} times ....", countTmp);
                 log.info("Options: {}", options);
                 log.info("Config: {}", mqttConfig);
+                // instead of using client.reconnect(), we use client.connect()
                 client.connect(options);
                 client.subscribe(mqttConfig.getTopic(), 0);
                 log.info("Re-connect the mqttServer success ....");
@@ -67,7 +70,7 @@ public class MQTTUtil {
                 log.error("Retry failed for {} times", countTmp, e);
                 if (countTmp == ConnectorConst.MQTT_MAX_CONNECT_RETRY_COUNT) {
                     log.error("Retry failed for {} times, giving up...", countTmp);
-                    throw new RuntimeException(e);
+                    throw new PanicException("Try to reconnect to mqtt server failed after %s times", String.valueOf(countTmp));
                 }
                 try {
                     Thread.sleep(ConnectorConst.MQTT_RECONNECT_PERIOD);

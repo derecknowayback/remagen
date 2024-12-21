@@ -1,28 +1,31 @@
 package com.dereckchen.remagen.demo;
 
+
 import com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst;
 import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.DescribeTopicsResult;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.header.Headers;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
-import static org.apache.kafka.clients.producer.ProducerConfig.METADATA_MAX_AGE_CONFIG;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 @Slf4j
 public class MqttSinkDemo {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
         // Kafka broker地址
         String bootstrapServers = "localhost:9092,localhost:9093,localhost:9094";
         // 主题名称
-        String topic = "bnew_top";
+        String topic = "new_top_k";
         String mqttTopic = "test_mqtt";
 
 
@@ -32,16 +35,41 @@ public class MqttSinkDemo {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, "com.dereckchen.remagen.kafka.interceptor.BridgeProducerInterceptor");
-        props.put(ProducerConfig.METADATA_MAX_AGE_CONFIG,"3000");
-        props.put(ProducerConfig.RETRIES_CONFIG, "3");
+
+        // Enable idempotence to handle duplicates
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        // Increase metadata refresh interval
+        props.put(ProducerConfig.METADATA_MAX_AGE_CONFIG, 10000);
+        // More acknowledgments for reliability
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        // Increase retries and backoff
+        props.put(ProducerConfig.RETRIES_CONFIG, 5);
+        props.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
 
         props.put("kafkaConnectManager.host", "127.0.0.1");
         props.put("kafkaConnectManager.port", "8848");
         props.put("kafkaConnectManager.needHttps", "false");
 
+        AdminClient adminClient = AdminClient.create(props);
+
+        DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Collections.singleton(topic));
+
+        Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
+        for (Map.Entry<String, TopicDescription> entry : topicDescriptionMap.entrySet()) {
+            TopicDescription topicDescription = entry.getValue();
+            System.out.println("Topic: " + topicDescription.name());
+            for (TopicPartitionInfo partitionInfo : topicDescription.partitions()) {
+                System.out.println("Partition: " + partitionInfo.partition());
+                System.out.println("  Leader: " + partitionInfo.leader().id());
+            }
+        }
 
         // 创建生产者实例
         Producer<String, String> producer = new KafkaProducer<>(props);
+
+
+        List<PartitionInfo> partitionInfos = producer.partitionsFor(topic);
+        log.info("partitionInfos: {}", partitionInfos);
 
 
         String key = "1";
@@ -51,7 +79,7 @@ public class MqttSinkDemo {
                 "}";
 
         // 发送消息
-        while (true) {
+        for (int i = 0; i < 100000; i++) {
             ProducerRecord<String, String> record = new ProducerRecord<>(topic, key + Math.random(), value);
 
             BridgeOption option = new BridgeOption(mqttTopic, topic, getProps(topic, mqttTopic));
@@ -61,11 +89,12 @@ public class MqttSinkDemo {
             headers.add(KafkaInterceptorConst.KAFKA_HEADER_BRIDGE_OPTION_KEY, JsonUtils.toJsonBytes(option));
 
 
+            int finalI = i;
             producer.send(record, (metadata, exception) -> {
                 if (exception == null) {
-                    log.info("Message sent successfully: {}", metadata.toString());
+                    log.info("Message {} sent successfully: {}", finalI, metadata.toString());
                 } else {
-                    log.error("Error sending message: {}", exception.getMessage());
+                    log.error("Error {} sending message: {}", finalI, exception.getMessage());
                 }
             });
             try {
@@ -80,7 +109,7 @@ public class MqttSinkDemo {
         Map<String, String> props = new HashMap<>();
         props.put("connector.class", "com.dereckchen.remagen.kafka.connector.sink.MqttSinkConnector");
         props.put("tasks.max", "1");
-        props.put("topics", topic); // todo 重点观察是传类型还是数组
+        props.put("topics", topic);
         props.put("mqtt.topic", mqttTopic);
         props.put("mqtt.broker", "tcp://emqx:1883");
         props.put("mqtt.username", "admin");

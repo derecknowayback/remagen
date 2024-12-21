@@ -43,8 +43,8 @@ sleep 5 # 等待其他机器启动
 # 获取环境变量 NEED_CREATE_TOPICS
 if [ "$NEED_CREATE_TOPICS" = "true" ]; then
   echo "Creating topics for connect cluster..."
-  bin/kafka-topics.sh --create --topic connect-offsets --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092   --config cleanup.policy=compact
-  bin/kafka-topics.sh --create --topic connect-configs --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092  --config cleanup.policy=compact
+  bin/kafka-topics.sh --create --topic connect-offsets --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092  --config cleanup.policy=compact
+  bin/kafka-topics.sh --create --topic connect-configs --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 --config cleanup.policy=compact
   bin/kafka-topics.sh --create --topic connect-status --bootstrap-server kafka1:9092,kafka2:9092,kafka3:9092 --config cleanup.policy=compact
   echo "Topics created successfully."
 fi

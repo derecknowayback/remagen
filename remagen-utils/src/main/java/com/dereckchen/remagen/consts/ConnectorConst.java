@@ -4,6 +4,15 @@ public class ConnectorConst {
 
     public static final String CONNECTOR_NAME_FORMAT = "mqtt-%s-kafka-%s";
 
+    public static final String DEFAULT_VERSION = "0.1-BETA";
+
+    // CONNECTOR
+    public static final String PROPS_CONNECTOR_NAME = "name";
+    public static final String PROPS_CONNECTOR_CLASS = "connector.class";
+    public static final String PROPS_TASKS_MAX = "tasks.max";
+    public static final String PROPS_TASKS_SINK_TOPICS = "topics";
+    public static final String PROPS_TASKS_SOURCE_TOPIC = "topic";
+
     // MQTT
     public static final int MQTT_MAX_CONNECT_RETRY_COUNT = 10;
     public static final int MQTT_RECONNECT_PERIOD = 1000;

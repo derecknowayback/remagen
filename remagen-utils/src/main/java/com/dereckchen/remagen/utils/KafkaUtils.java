@@ -16,7 +16,7 @@ public class KafkaUtils {
                 .host(prop.get(ConnectorConst.PROPS_KAFKA_HOST))
                 .port(prop.get(ConnectorConst.PROPS_KAFKA_PORT))
                 .needHttps(Boolean.parseBoolean(prop.getOrDefault(ConnectorConst.PROPS_KAFKA_NEED_HTTPS, "false")))
-                .kafkaTopic(prop.getOrDefault(ConnectorConst.PROPS_KAFKA_TOPIC, ""))
+                .kafkaTopics(prop.getOrDefault(ConnectorConst.PROPS_KAFKA_TOPIC, ""))
                 .build();
     }
 
