@@ -31,9 +31,6 @@ public class ConnectorConst {
     public static final String INTERCEPTOR_PROP_HOST = "kafkaConnectManager.host";
     public static final String INTERCEPTOR_PROP_PORT = "kafkaConnectManager.port";
 
-
-    public static final String KAFKA_PROP_KEY = "topic";
-
     // Kafka message partition
     public static final String PARTITION_KAFKA_TOPIC_KEY = "kafkaTopic";
     public static final String PARTITION_MQTT_TOPIC_KEY = "mqttTopic";
