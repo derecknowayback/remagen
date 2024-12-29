@@ -2,6 +2,8 @@ package com.dereckchen.remagen.consts;
 
 public class ConnectorConst {
 
+    public static final String VERSION_ENV_KEY = "REMAGEN.VERSION";
+
     public static final String CONNECTOR_NAME_FORMAT = "mqtt-%s-kafka-%s";
 
     public static final String DEFAULT_VERSION = "0.1-BETA";

@@ -3,8 +3,11 @@ package com.dereckchen.remagen.utils;
 
 import com.dereckchen.remagen.consts.ConnectorConst;
 import com.dereckchen.remagen.models.BridgeConfig;
+import com.dereckchen.remagen.models.KafkaServerConfig;
+import com.dereckchen.remagen.models.MQTTConfig;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +15,14 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 public class ConnectorUtilsTest {
+
+    private Map<String, String> props;
+
+    @Before
+    public void setUp() {
+        props = new HashMap<>();
+    }
+
 
     @Test
     public void getConnectorName_ValidInputs_CorrectFormat() {
@@ -48,14 +59,6 @@ public class ConnectorUtilsTest {
         kafkaTopic = "testKafkaTopic";
         expectedConnectorName = String.format(ConnectorConst.CONNECTOR_NAME_FORMAT, mqttTopic, kafkaTopic);
         assertEquals(expectedConnectorName, ConnectorUtils.getConnectorName(mqttTopic, kafkaTopic));
-    }
-
-
-    private Map<String, String> props;
-
-    @Before
-    public void setUp() {
-        props = new HashMap<>();
     }
 
     @Test

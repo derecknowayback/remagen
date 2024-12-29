@@ -71,13 +71,15 @@ public class MqttSourceTask extends SourceTask {
         latestTimeStamp = "";
 
         // Get kafka topic
-        kafkaTopic = getKafkaTopic();
+        String kafkaTopics = config.getKafkaServerConfig().getKafkaTopics();
+        kafkaTopic = getKafkaTopic(kafkaTopics);
 
         // Initialize the MQTT client
         initializeMqttClient();
 
         // Update the offset
-        getOffset();
+        String mqttTopic = config.getMqttConfig().getTopic();
+        latestTimeStamp = getOffset(kafkaTopic, mqttTopic);
 
         // Set the callback
         setCallback();
@@ -109,19 +111,19 @@ public class MqttSourceTask extends SourceTask {
      * Retrieves the offset for the given Kafka topic and partition.
      * If the offset is found, it updates the latest timestamp with the value of the offset.
      */
-    public void getOffset() {
+    public String getOffset(String kafkaTopic, String mqttTopic) {
         // Get the OffsetStorageReader from the context
         OffsetStorageReader offsetStorageReader = context.offsetStorageReader();
         // Calculate the partition for the given Kafka topic and MQTT topic
-        String mqttTopic = config.getMqttConfig().getTopic();
         Map<String, Object> offset = offsetStorageReader.offset(
                 getPartition(kafkaTopic, mqttTopic));
         log.info("offset from kafka: {}", offset);
         // If the offset is not null, update the latest timestamp with the offset value
         if (offset != null) {
-            latestTimeStamp = (String) offset.getOrDefault(
+            return (String) offset.getOrDefault(
                     OFFSET_TIMESTAMP_KEY, ""); // restore offset
         }
+        return "";
     }
 
 
@@ -133,9 +135,8 @@ public class MqttSourceTask extends SourceTask {
      *
      * @return the Kafka topic name
      */
-    public String getKafkaTopic() {
+    public String getKafkaTopic(String kafkaTopics) {
         // Extract the Kafka topics string from the configuration
-        String kafkaTopics = config.getKafkaServerConfig().getKafkaTopics();
         String[] split = kafkaTopics.split(",");  // Split by comma
         if (split.length > 1) {
             log.warn("Only one topic is supported. Using the first one: {}", split[0]);
@@ -252,9 +253,9 @@ public class MqttSourceTask extends SourceTask {
                 // Create a new Kafka source record from the received MQTT message and add it to the records list.
                 lock.lock();
                 SourceRecord sourceRecord = new SourceRecord(
-                        KafkaUtils.getPartition(getKafkaTopic(), topic),
+                        KafkaUtils.getPartition(kafkaTopic, topic),
                         Collections.singletonMap(OFFSET_TIMESTAMP_KEY, bridgeMessage.getTimestamp()),
-                        getKafkaTopic(), null, bridgeMessage.getContent());
+                        kafkaTopic, null, bridgeMessage.getContent());
                 records.add(sourceRecord);
                 mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
                 lock.unlock();

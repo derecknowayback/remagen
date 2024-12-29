@@ -27,6 +27,13 @@ public class BridgeMessage {
     private String content; // json format
     private String timestamp; // yyyy-MM-dd HH:mm:ss
 
+    /**
+     * Constructs a new BridgeMessage with the specified content, QoS, and retained flag.
+     *
+     * @param content  The content of the message, which should be an instance of IBridgeMessageContent.
+     * @param qos      The Quality of Service level for the message (0, 1, or 2).
+     * @param retained If true, the message will be retained by the broker.
+     */
     public BridgeMessage(IBridgeMessageContent content, int qos, boolean retained) {
         this.id = content.getMessageId();
         this.content = content.serializeToJsonStr();
@@ -35,7 +42,11 @@ public class BridgeMessage {
         this.timestamp = LocalDateTime.now().format(DATE_TIME_FORMATTER);
     }
 
-
+    /**
+     * Transfers the BridgeMessage to an MQTT message.
+     *
+     * @return An MqttMessage object containing the serialized BridgeMessage.
+     */
     public MqttMessage transferToMqttMessage() {
         MqttMessage mqttMessage = new MqttMessage();
         mqttMessage.setRetained(retained);
@@ -43,6 +54,5 @@ public class BridgeMessage {
         mqttMessage.setPayload(JsonUtils.toJsonBytes(this)); // serial self
         return mqttMessage;
     }
-
-
 }
+

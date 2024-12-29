@@ -39,7 +39,8 @@ public class JsonUtilsTest {
     @Test
     public void fromJson_ValidJsonString_ReturnsObject() {
         String jsonString = "[\"test\"]";
-        List<String> result = JsonUtils.fromJson(jsonString, new TypeReference<List<String>>() {});
+        List<String> result = JsonUtils.fromJson(jsonString, new TypeReference<List<String>>() {
+        });
         assertEquals(stringList, result);
     }
 
@@ -68,6 +69,7 @@ public class JsonUtilsTest {
     @Test
     public void fromJson_InvalidJsonString_ThrowsRuntimeException() {
         String invalidJson = "[\"test\"";
-        assertThrows(RuntimeException.class, () -> JsonUtils.fromJson(invalidJson, new TypeReference<List<String>>() {}));
+        assertThrows(RuntimeException.class, () -> JsonUtils.fromJson(invalidJson, new TypeReference<List<String>>() {
+        }));
     }
 }

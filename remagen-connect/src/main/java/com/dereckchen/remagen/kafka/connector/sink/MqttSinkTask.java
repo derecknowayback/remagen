@@ -8,6 +8,7 @@ import com.dereckchen.remagen.models.MQTTConfig;
 import com.dereckchen.remagen.utils.JsonUtils;
 import com.dereckchen.remagen.utils.KafkaUtils;
 import com.dereckchen.remagen.utils.MQTTUtil;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
@@ -20,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.dereckchen.remagen.consts.ConnectorConst.DEFAULT_VERSION;
+import static com.dereckchen.remagen.consts.ConnectorConst.VERSION_ENV_KEY;
 
 @Slf4j
 public class MqttSinkTask extends SinkTask {
@@ -34,12 +36,16 @@ public class MqttSinkTask extends SinkTask {
     @Override
     public String version() {
         // get version from env
-        String VERSION = System.getenv("REMAGEN.VERSION");
+        String VERSION = System.getenv(VERSION_ENV_KEY);
         if (VERSION == null) {
             VERSION = DEFAULT_VERSION;
         }
         log.info("MqttSinkTask version: {}", VERSION);
         return VERSION;
+    }
+
+    public boolean isRunning() {
+        return running.get();
     }
 
     @Override
@@ -53,12 +59,21 @@ public class MqttSinkTask extends SinkTask {
         running.set(true);
     }
 
+    /**
+     * Parse the configuration information from the properties map
+     *
+     * @param props A map containing the configuration properties
+     */
     public void parseConfig(Map<String, String> props) {
+        // Parse the MQTT configuration from the properties map
         mqttConfig = MQTTUtil.parseConfig(props);
         log.info("Use mqttConfig: {}", mqttConfig);
 
+        // Parse the Kafka server configuration from the properties map
         KafkaServerConfig kafkaServerConfig = KafkaUtils.parseConfig(props);
+        // Retrieve the Kafka topics from the Kafka server configuration
         String kafkaTopicsStr = kafkaServerConfig.getKafkaTopics();
+        // Split the Kafka topics string into a set of topics
         kafkaTopics = new HashSet<>(Arrays.asList(kafkaTopicsStr.split(",")));
         log.info("Use kafkaTopics: {}", kafkaTopics);
     }
@@ -74,7 +89,7 @@ public class MqttSinkTask extends SinkTask {
     @Override
     public void put(Collection<SinkRecord> records) {
         // if it is not running, do nothing, just return
-        if (!running.get()) {
+        if (isRunning()) {
             log.warn("SinkTask is not running...");
             return;
         }
@@ -142,7 +157,8 @@ public class MqttSinkTask extends SinkTask {
                 // if we didn't init mqtt client, init it
                 if (mqttClient == null) {
                     initMqttClient();
-                } else if (!mqttClient.isConnected()) {
+                }
+                if (!mqttClient.isConnected()) {
                     // if mqtt client is not connected, try reconnect
                     MQTTUtil.tryReconnect(running::get, mqttClient, mqttConnectOptions, mqttConfig);
                 }

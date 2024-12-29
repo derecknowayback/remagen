@@ -62,7 +62,7 @@ public class MqttSourceConnector extends SourceConnector {
     @Override
     public String version() {
         // get version from env
-        String VERSION = System.getenv("REMAGEN.VERSION");
+        String VERSION = System.getenv(VERSION_ENV_KEY);
         if (VERSION == null) {
             VERSION = DEFAULT_VERSION;
         }

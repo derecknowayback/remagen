@@ -71,7 +71,7 @@ public class RestManager {
 
     public <T> T sendGetRequest(RestfulRequest<T> request) {
         try {
-            String url = protocolPrefix + hostAndPort + request.getUri();
+            String url = getUrl(request.getUri());
 
             // send request
             ContentResponse response = httpClient.GET(url);
@@ -87,7 +87,7 @@ public class RestManager {
 
     public <T> T sendDeleteRequest(RestfulRequest<T> request) {
         try {
-            String url = protocolPrefix + hostAndPort + request.getUri();
+            String url = getUrl(request.getUri());
             Request delete = httpClient.newRequest(url).method(HttpMethod.DELETE);
 
             Map<String, String> header = request.getRequestHeader();
@@ -102,5 +102,9 @@ public class RestManager {
             log.error("Delete request error: {}", request, e);
             throw new RuntimeException(e);
         }
+    }
+
+    public String getUrl(String uri) {
+        return protocolPrefix + hostAndPort + uri;
     }
 }
