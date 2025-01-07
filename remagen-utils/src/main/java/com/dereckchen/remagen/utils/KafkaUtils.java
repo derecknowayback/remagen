@@ -12,11 +12,12 @@ import static com.dereckchen.remagen.consts.ConnectorConst.PARTITION_MQTT_TOPIC_
 
 public class KafkaUtils {
     public static KafkaServerConfig parseConfig(Map<String, String> prop) {
+        String sinkTopics = prop.getOrDefault(ConnectorConst.PROPS_TASKS_SINK_TOPICS, "");
         return KafkaServerConfig.builder()
                 .host(prop.get(ConnectorConst.PROPS_KAFKA_HOST))
                 .port(prop.get(ConnectorConst.PROPS_KAFKA_PORT))
                 .needHttps(Boolean.parseBoolean(prop.getOrDefault(ConnectorConst.PROPS_KAFKA_NEED_HTTPS, "false")))
-                .kafkaTopics(prop.getOrDefault(ConnectorConst.PROPS_KAFKA_TOPIC, ""))
+                .kafkaTopics(prop.getOrDefault(ConnectorConst.PROPS_TASKS_SOURCE_TOPIC, sinkTopics))
                 .build();
     }
 

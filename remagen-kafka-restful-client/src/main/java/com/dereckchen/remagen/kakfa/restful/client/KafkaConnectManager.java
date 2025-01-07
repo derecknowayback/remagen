@@ -6,6 +6,7 @@ import com.dereckchen.remagen.kakfa.restful.request.delete.DeleteConnectorReques
 import com.dereckchen.remagen.kakfa.restful.request.get.GetAllConnectorsRequest;
 import com.dereckchen.remagen.kakfa.restful.request.get.GetConnectorRequest;
 import com.dereckchen.remagen.kakfa.restful.request.post.CreateConnectorReq;
+import com.dereckchen.remagen.models.ConnectorInfoV2;
 import lombok.Data;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.CreateConnectorRequest.InitialState;
@@ -35,7 +36,7 @@ public class KafkaConnectManager {
      * @param config        The configuration for the connector.
      * @return The created connector info.
      */
-    public ConnectorInfo createConnector(String connectorName, Map<String, String> config) {
+    public ConnectorInfoV2 createConnector(String connectorName, Map<String, String> config) {
         // Create a new CreateConnectorReq object with the given connector name, config, and initial state
         CreateConnectorReq createConnectorReq = new CreateConnectorReq(connectorName, config, InitialState.RUNNING);
         // Send the create connector request and return the response
@@ -62,7 +63,7 @@ public class KafkaConnectManager {
      * @param connectorName The name of the Kafka connector to retrieve information for.
      * @return A ConnectorInfo object containing the configuration and status of the connector.
      */
-    public ConnectorInfo getConnector(String connectorName) {
+    public ConnectorInfoV2 getConnector(String connectorName) {
         // Create a new GetConnectorRequest object with the given connector name
         GetConnectorRequest getConnectorRequest = new GetConnectorRequest(connectorName);
         // Send the request and return the response

@@ -89,7 +89,7 @@ public class MqttSinkTask extends SinkTask {
     @Override
     public void put(Collection<SinkRecord> records) {
         // if it is not running, do nothing, just return
-        if (isRunning()) {
+        if (!isRunning()) {
             log.warn("SinkTask is not running...");
             return;
         }

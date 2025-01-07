@@ -4,28 +4,28 @@ import com.dereckchen.remagen.models.BridgeMessage;
 import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.models.IBridgeMessageContent;
 import com.dereckchen.remagen.models.KafkaServerConfig;
-import com.dereckchen.remagen.mqtt.client.MqttClientV2;
+import com.dereckchen.remagen.mqtt.client.MqttBridgeClient;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class MqttSourceDemo {
+public class MqttSend {
 
     public static void main(String[] args) throws Exception {
         String serverURI = "tcp://localhost:1883";
         String clientId = "cccmqtt-source-demo" + Math.random();
         String mqtt_topic = "mqtt_test_cjp1";
-        String kafka_topic = "mys";
+        String kafka_topic = "new_topic_1";
 
-        KafkaServerConfig kafkaServerConfig = KafkaServerConfig.builder().host("127.0.0.1").port("8848").needHttps(false).build();
+        KafkaServerConfig kafkaServerConfig = KafkaServerConfig.builder().host("127.0.0.1").port("38083").needHttps(false).build();
 
         String json = "{\n" +
                 "\"uid\":1,\n" +
                 "\"cost\":100\n" +
                 "}";
 
-        MqttClientV2 mqttClientV2 = new MqttClientV2(serverURI, clientId, kafkaServerConfig);
-        mqttClientV2.connect();
+        MqttBridgeClient mqttBridgeClient = new MqttBridgeClient(serverURI, clientId, kafkaServerConfig);
+        mqttBridgeClient.connect();
 
 
         Map<String, String> props = getProps(mqtt_topic, kafka_topic, clientId);
@@ -44,7 +44,7 @@ public class MqttSourceDemo {
                     return "1";
                 }
             }, 0, true);
-            mqttClientV2.publish(mqtt_topic, msg, bridgeOption);
+            mqttBridgeClient.publish(mqtt_topic, msg, bridgeOption);
         }
     }
 

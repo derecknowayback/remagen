@@ -1,6 +1,7 @@
 package com.dereckchen.remagen.kakfa.restful.request.get;
 
 
+import com.dereckchen.remagen.models.ConnectorInfoV2;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Before;
@@ -26,7 +27,7 @@ public class GetConnectorRequestTest {
         ConnectorInfo expectedInfo = new ConnectorInfo("testConnector",
                 Collections.singletonMap("key", "value"), Collections.emptyList(), ConnectorType.SOURCE);
 
-        ConnectorInfo result = request.parseResp(validJson);
+        ConnectorInfoV2 result = request.parseResp(validJson);
 
         assertEquals(expectedInfo, result);
     }
@@ -35,7 +36,7 @@ public class GetConnectorRequestTest {
     public void parseResp_InvalidJsonString_ReturnsNull() {
         String invalidJson = "invalid-json-string";
 
-        ConnectorInfo result = request.parseResp(invalidJson);
+        ConnectorInfoV2 result = request.parseResp(invalidJson);
 
         assertNull(result);
     }

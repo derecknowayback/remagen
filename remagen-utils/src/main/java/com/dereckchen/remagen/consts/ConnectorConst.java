@@ -28,7 +28,6 @@ public class ConnectorConst {
     public static final String PROPS_KAFKA_HOST = "kafka.host";
     public static final String PROPS_KAFKA_PORT = "kafka.port";
     public static final String PROPS_KAFKA_NEED_HTTPS = "kafka.needHttps";
-    public static final String PROPS_KAFKA_TOPIC = "kafka.topic";
 
     public static final String INTERCEPTOR_PROP_HOST = "kafkaConnectManager.host";
     public static final String INTERCEPTOR_PROP_PORT = "kafkaConnectManager.port";

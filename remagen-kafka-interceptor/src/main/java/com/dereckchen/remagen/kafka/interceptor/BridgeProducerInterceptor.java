@@ -2,6 +2,7 @@ package com.dereckchen.remagen.kafka.interceptor;
 
 import com.dereckchen.remagen.kakfa.restful.client.KafkaConnectManager;
 import com.dereckchen.remagen.models.BridgeOption;
+import com.dereckchen.remagen.models.ConnectorInfoV2;
 import com.dereckchen.remagen.utils.ConnectorUtils;
 import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.Data;
@@ -72,7 +73,7 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
         String connectorName = ConnectorUtils.getConnectorName(
                 bridgeOption.getMqttTopic(), topic);
         // Get the connector from the Kafka Connect manager
-        ConnectorInfo connector = kafkaConnectManager.getConnector(connectorName);
+        ConnectorInfoV2 connector = kafkaConnectManager.getConnector(connectorName);
         // If the connector does not exist
         if (connector == null) {
             // Log a warning

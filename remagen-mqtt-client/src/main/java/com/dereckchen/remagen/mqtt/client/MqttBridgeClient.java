@@ -3,12 +3,12 @@ package com.dereckchen.remagen.mqtt.client;
 import com.dereckchen.remagen.kakfa.restful.client.KafkaConnectManager;
 import com.dereckchen.remagen.models.BridgeMessage;
 import com.dereckchen.remagen.models.BridgeOption;
+import com.dereckchen.remagen.models.ConnectorInfoV2;
 import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.ConnectorUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.eclipse.paho.client.mqttv3.*;
 
 import java.util.Arrays;
@@ -19,35 +19,37 @@ import java.util.concurrent.ScheduledExecutorService;
 @Getter
 @Setter
 @Slf4j
-public class MqttClientV2 extends MqttClient {
+public class MqttBridgeClient extends MqttClient {
 
     private KafkaConnectManager kafkaConnectManager;
 
 
-    public MqttClientV2(String serverURI, String clientId) throws MqttException {
+    public MqttBridgeClient(String serverURI, String clientId) throws MqttException {
         super(serverURI, clientId);
     }
 
 
-    public MqttClientV2(String serverURI, String clientId, KafkaServerConfig option) throws MqttException {
+    public MqttBridgeClient(String serverURI, String clientId, KafkaServerConfig option) throws MqttException {
         super(serverURI, clientId);
         this.kafkaConnectManager = new KafkaConnectManager(option.getHost(), option.getPort(), option.isNeedHttps());
     }
 
-    public MqttClientV2(String serverURI, String clientId, MqttClientPersistence persistence) throws MqttException {
+    public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence) throws MqttException {
         super(serverURI, clientId, persistence);
     }
 
-    public MqttClientV2(String serverURI, String clientId, MqttClientPersistence persistence, KafkaServerConfig option) throws MqttException {
+    public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence, KafkaServerConfig option) throws MqttException {
         super(serverURI, clientId, persistence);
+        this.kafkaConnectManager = new KafkaConnectManager(option.getHost(), option.getPort(), option.isNeedHttps());
     }
 
-    public MqttClientV2(String serverURI, String clientId, MqttClientPersistence persistence, ScheduledExecutorService executorService) throws MqttException {
+    public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence, ScheduledExecutorService executorService) throws MqttException {
         super(serverURI, clientId, persistence, executorService);
     }
 
-    public MqttClientV2(String serverURI, String clientId, MqttClientPersistence persistence, ScheduledExecutorService executorService, KafkaServerConfig option) throws MqttException {
+    public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence, ScheduledExecutorService executorService, KafkaServerConfig option) throws MqttException {
         super(serverURI, clientId, persistence, executorService);
+        this.kafkaConnectManager = new KafkaConnectManager(option.getHost(), option.getPort(), option.isNeedHttps());
     }
 
     /**
@@ -78,7 +80,7 @@ public class MqttClientV2 extends MqttClient {
         }
 
         // Convert the array of BridgeOption objects to an array of strings containing the MQTT topics.
-        String[] topicFilters = (String[]) Arrays.stream(bridgeOptions).map(BridgeOption::getMqttTopic).toArray();
+        String[] topicFilters = Arrays.stream(bridgeOptions).map(BridgeOption::getMqttTopic).toArray(String[]::new);
 
         // Call the superclass's subscribe method to subscribe to the MQTT topics with the specified QoS levels and message listeners.
         super.subscribe(topicFilters, qos, messageListeners);
@@ -107,12 +109,15 @@ public class MqttClientV2 extends MqttClient {
         // Generate a unique connector name based on the MQTT topic and Kafka topic
         String connectorName = ConnectorUtils.getConnectorName(bridgeOption.getMqttTopic(), bridgeOption.getKafkaTopic());
         // Retrieve the connector information from the Kafka Connect Manager
-        ConnectorInfo connector = kafkaConnectManager.getConnector(connectorName);
+        ConnectorInfoV2 connector = kafkaConnectManager.getConnector(connectorName);
         // If the connector does not exist
         if (connector == null) {
             log.warn("connector:{} not exist", connectorName);
             // Create a new Kafka connector with the generated connector name and the properties from the BridgeOption object
-            kafkaConnectManager.createConnector(connectorName, bridgeOption.getProps());
+            connector = kafkaConnectManager.createConnector(connectorName, bridgeOption.getProps());
+            if (connector.getErrorCode() != null) {
+                log.error("create connector error:{}", connector.getMessage());
+            }
         }
 
         // Call the superclass's publish method to publish the MQTT message

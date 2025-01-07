@@ -5,29 +5,24 @@ import com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst;
 import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.DescribeTopicsResult;
-import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.header.Headers;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
-public class MqttSinkDemo {
+public class KafkaSend {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         // Kafka broker地址
-        String bootstrapServers = "localhost:9092,localhost:9093,localhost:9094";
+        String bootstrapServers = "localhost:39092,localhost:39093,localhost:39094";
         // 主题名称
-        String topic = "new_top_k";
+        String topic = "new_topic";
         String mqttTopic = "test_mqtt";
-
 
         // 配置生产者
         Properties props = new Properties();
@@ -47,22 +42,22 @@ public class MqttSinkDemo {
         props.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
 
         props.put("kafkaConnectManager.host", "127.0.0.1");
-        props.put("kafkaConnectManager.port", "8848");
+        props.put("kafkaConnectManager.port", "38083");
         props.put("kafkaConnectManager.needHttps", "false");
 
-        AdminClient adminClient = AdminClient.create(props);
-
-        DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Collections.singleton(topic));
-
-        Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
-        for (Map.Entry<String, TopicDescription> entry : topicDescriptionMap.entrySet()) {
-            TopicDescription topicDescription = entry.getValue();
-            System.out.println("Topic: " + topicDescription.name());
-            for (TopicPartitionInfo partitionInfo : topicDescription.partitions()) {
-                System.out.println("Partition: " + partitionInfo.partition());
-                System.out.println("  Leader: " + partitionInfo.leader().id());
-            }
-        }
+//        AdminClient adminClient = AdminClient.create(props);
+//
+//        DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Collections.singleton(topic));
+//
+//        Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
+//        for (Map.Entry<String, TopicDescription> entry : topicDescriptionMap.entrySet()) {
+//            TopicDescription topicDescription = entry.getValue();
+//            System.out.println("Topic: " + topicDescription.name());
+//            for (TopicPartitionInfo partitionInfo : topicDescription.partitions()) {
+//                System.out.println("Partition: " + partitionInfo.partition());
+//                System.out.println("  Leader: " + partitionInfo.leader().id());
+//            }
+//        }
 
         // 创建生产者实例
         Producer<String, String> producer = new KafkaProducer<>(props);
