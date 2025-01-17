@@ -27,7 +27,7 @@ public class ConnectorUtils {
      */
     public static BridgeConfig parseConfig(Map<String, String> props) {
         KafkaServerConfig kafkaServerConfig = KafkaUtils.parseConfig(props);
-        MQTTConfig mqttConfig = MQTTUtil.parseConfig(props);
+        MQTTConfig mqttConfig = MQTTUtils.parseConfig(props);
         return BridgeConfig.builder()
                 .kafkaServerConfig(kafkaServerConfig)
                 .mqttConfig(mqttConfig).build();

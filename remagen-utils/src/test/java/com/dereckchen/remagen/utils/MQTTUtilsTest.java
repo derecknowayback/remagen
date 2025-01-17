@@ -2,7 +2,6 @@ package com.dereckchen.remagen.utils;
 
 
 import com.dereckchen.remagen.exceptions.PanicException;
-import com.dereckchen.remagen.exceptions.RetryableException;
 import com.dereckchen.remagen.models.MQTTConfig;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -18,7 +17,7 @@ import java.util.function.BooleanSupplier;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-public class MQTTUtilTest {
+public class MQTTUtilsTest {
 
     private Map<String, String> props;
     private MQTTConfig mqttConfig;
@@ -34,14 +33,14 @@ public class MQTTUtilTest {
         props.put("mqtt.password", "testPass");
         props.put("mqtt.topic", "testTopic");
 
-        mqttConfig = MQTTUtil.parseConfig(props);
+        mqttConfig = MQTTUtils.parseConfig(props);
         mqttClient = mock(MqttClient.class);
         options = mock(MqttConnectOptions.class);
     }
 
     @Test
     public void parseConfig_ValidProperties_ShouldCreateMQTTConfig() {
-        MQTTConfig config = MQTTUtil.parseConfig(props);
+        MQTTConfig config = MQTTUtils.parseConfig(props);
         assertNotNull(config);
         assertEquals("tcp://localhost:1883", config.getBroker());
         assertEquals("testClient", config.getClientid());
@@ -52,13 +51,13 @@ public class MQTTUtilTest {
 
     @Test
     public void getMqttClient_ValidConfig_ShouldCreateMqttClient() throws MqttException {
-        MqttClient client = MQTTUtil.getMqttClient(mqttConfig);
+        MqttClient client = MQTTUtils.getMqttClient(mqttConfig);
         assertNotNull(client);
     }
 
     @Test
     public void defaultOptions_ValidConfig_ShouldCreateOptions() {
-        MqttConnectOptions options = MQTTUtil.defaultOptions(mqttConfig);
+        MqttConnectOptions options = MQTTUtils.defaultOptions(mqttConfig);
         assertNotNull(options);
         assertEquals("testUser", options.getUserName());
         assertTrue(Arrays.equals("testPass".toCharArray(), options.getPassword()));
@@ -70,7 +69,7 @@ public class MQTTUtilTest {
         doNothing().when(mqttClient).connect(options);
         doNothing().when(mqttClient).subscribe(mqttConfig.getTopic(), 0);
 
-        MQTTUtil.tryReconnect(running, mqttClient, options, mqttConfig);
+        MQTTUtils.tryReconnect(running, mqttClient, options, mqttConfig);
 
         verify(mqttClient, times(1)).connect(options);
         verify(mqttClient, times(1)).subscribe(mqttConfig.getTopic(), 0);
@@ -81,6 +80,6 @@ public class MQTTUtilTest {
         BooleanSupplier running = () -> true;
         doThrow(new MqttException(1)).when(mqttClient).connect(options);
 
-        assertThrows(PanicException.class, () -> MQTTUtil.tryReconnect(running, mqttClient, options, mqttConfig));
+        assertThrows(PanicException.class, () -> MQTTUtils.tryReconnect(running, mqttClient, options, mqttConfig));
     }
 }

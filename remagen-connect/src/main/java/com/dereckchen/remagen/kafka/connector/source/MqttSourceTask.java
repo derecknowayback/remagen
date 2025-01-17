@@ -8,7 +8,13 @@ import com.dereckchen.remagen.models.MQTTConfig;
 import com.dereckchen.remagen.models.Pair;
 import com.dereckchen.remagen.utils.JsonUtils;
 import com.dereckchen.remagen.utils.KafkaUtils;
-import com.dereckchen.remagen.utils.MQTTUtil;
+import com.dereckchen.remagen.utils.MQTTUtils;
+import com.dereckchen.remagen.utils.MetricsUtils;
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.Counter;
+import io.prometheus.client.Gauge;
+import io.prometheus.client.Histogram;
+import io.prometheus.client.exporter.PushGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -16,17 +22,19 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.eclipse.paho.client.mqttv3.*;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.dereckchen.remagen.consts.ConnectorConst.DEFAULT_VERSION;
-import static com.dereckchen.remagen.consts.ConnectorConst.OFFSET_TIMESTAMP_KEY;
+import static com.dereckchen.remagen.consts.ConnectorConst.*;
 import static com.dereckchen.remagen.utils.ConnectorUtils.parseConfig;
 import static com.dereckchen.remagen.utils.KafkaUtils.getPartition;
-import static com.dereckchen.remagen.utils.MQTTUtil.defaultOptions;
-import static com.dereckchen.remagen.utils.MQTTUtil.tryReconnect;
+import static com.dereckchen.remagen.utils.MQTTUtils.defaultOptions;
+import static com.dereckchen.remagen.utils.MQTTUtils.tryReconnect;
 
 @Slf4j
 public class MqttSourceTask extends SourceTask {
@@ -42,6 +50,14 @@ public class MqttSourceTask extends SourceTask {
     private AtomicBoolean running;
     private String latestTimeStamp;
     private String kafkaTopic;
+    private String localIp;
+
+    private Counter sourceTaskMsgCounter;
+    private Counter sourceTaskErrCounter;
+    private Gauge sourceTaskLockStatus;
+
+    private PushGateway pushGateway;
+    private Thread pushMetricsThread;
 
     @Override
     public String version() {
@@ -84,8 +100,38 @@ public class MqttSourceTask extends SourceTask {
         // Set the callback
         setCallback();
 
+        // init metrics
+        initMetrics();
+
         // Start listening
         subscribe();
+    }
+
+    private void initMetrics() {
+        sourceTaskMsgCounter= MetricsUtils.getCounter("source_task_msg_counter","host");
+        sourceTaskErrCounter = MetricsUtils.getCounter("source_task_err_counter", "name","method","host");
+        sourceTaskLockStatus = MetricsUtils.getGauge("source_task_lock_status", "host");
+        CollectorRegistry defaultRegistry = CollectorRegistry.defaultRegistry;
+        defaultRegistry.register(sourceTaskMsgCounter);
+        defaultRegistry.register(sourceTaskErrCounter);
+        defaultRegistry.register(sourceTaskLockStatus);
+        try {
+            String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
+            pushGateway = new PushGateway(gatewayUrl);
+            pushMetricsThread = new Thread(() -> {
+                while (running.get()) {
+                    try {
+                        pushGateway.push(defaultRegistry, SOURCE_TASK_METRICS);
+                        Thread.sleep(PUSH_GATE_WAY_INTERVAL);
+                    } catch (Exception e) {
+                        log.error("pushGateway Exception",e);
+                    }
+                }
+            });
+            pushMetricsThread.start();
+        } catch (Exception e) {
+            log.error("init metrics gateway error: {}", e.getMessage());
+        }
     }
 
 
@@ -96,11 +142,11 @@ public class MqttSourceTask extends SourceTask {
      */
     public void subscribe() {
         try {
-            // Subscribe to the topic with QoS level 0
-            client.subscribe(config.getMqttConfig().getTopic(), 0);
+            // Subscribe to the topic with QoS level 1
+            client.subscribe(config.getMqttConfig().getTopic(), MQTT_QOS); // no guarantee for qos1
         } catch (MqttException e) {
-            // Log the error message
             log.error("Error subscribing to topic", e);
+            MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-subscribe-failed" ,"subscribe",getLocalIp());
             // Throw a RetryableException, indicating that the operation can be retried
             throw new RetryableException(e);
         }
@@ -140,6 +186,7 @@ public class MqttSourceTask extends SourceTask {
         String[] split = kafkaTopics.split(",");  // Split by comma
         if (split.length > 1) {
             log.warn("Only one topic is supported. Using the first one: {}", split[0]);
+            MetricsUtils.incrementCounter(sourceTaskErrCounter, "multiple kafka topics for source task", "getKafkaTopic",getLocalIp());
         }
         // Return the first topic
         return split[0];
@@ -158,29 +205,35 @@ public class MqttSourceTask extends SourceTask {
     public List<SourceRecord> poll() throws InterruptedException {
         // If the running flag is set to false, return null
         if (!running.get()) {
+            log.warn("MqttSourceTask is not running");
+            MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-poll-failed", "poll",getLocalIp());
             return null;
         }
+
         // If the records list is empty, return an empty list
         if (records.isEmpty()) {
+            log.warn("No records in MqttSourceTask");
             return Collections.emptyList();
         }
 
         // Acquire the lock to ensure thread safety when manipulating the records list
-        lock.lock();
-        log.info("Returning {} records", records.size());
-        // If the records list is empty, release the lock and return an empty list
-        if (records.isEmpty()) {
+        try {
+            lock.lock();
+            MetricsUtils.incrementGauge(sourceTaskLockStatus,getLocalIp());
+            log.info("Returning {} records", records.size());
+            // If the records list is empty, release the lock and return an empty list
+            if (records.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            // Return all the records
+            List<SourceRecord> sourceRecords = new ArrayList<>(records);
+            records.clear();
+            return sourceRecords;
+        } finally {
             lock.unlock();
-            return Collections.emptyList();
+            MetricsUtils.decrementGauge(sourceTaskLockStatus,getLocalIp());
         }
-
-        // Return all the records
-        List<SourceRecord> sourceRecords = new ArrayList<>(records);
-        records.clear();
-
-        lock.unlock();
-
-        return sourceRecords;
     }
 
 
@@ -191,12 +244,13 @@ public class MqttSourceTask extends SourceTask {
      */
     public void initializeMqttClient() {
         try {
-            client = MQTTUtil.getMqttClient(config.getMqttConfig());
-            MqttConnectOptions mqttConnectOptions = MQTTUtil.defaultOptions(config.getMqttConfig());
+            client = MQTTUtils.getMqttClient(config.getMqttConfig());
+            MqttConnectOptions mqttConnectOptions = MQTTUtils.defaultOptions(config.getMqttConfig());
             // Connect to the MQTT server using the provided connection options
             client.connect(mqttConnectOptions);
         } catch (Exception e) {
             log.error("Error initializing MQTT client", e);
+            MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-initialize-failed", "initializeMqttClient",getLocalIp());
             throw new RetryableException(e);
         }
     }
@@ -214,6 +268,7 @@ public class MqttSourceTask extends SourceTask {
              */
             public void connectionLost(Throwable cause) {
                 log.error("connectionLost: {}", cause.getMessage(), cause);
+                MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-connection-lost", "connectionLost",getLocalIp());
                 MQTTConfig mqttConfig = config.getMqttConfig();
                 synchronized (client) {
                     // double check
@@ -223,11 +278,14 @@ public class MqttSourceTask extends SourceTask {
                     try {
                         tryReconnect(running::get, client, defaultOptions(mqttConfig), mqttConfig);
                     } catch (PanicException exception) {
+                        MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-re-connect-lost", "connectionLost",getLocalIp());
                         try {
                             client.close(true); // close and disconnect the client
                         } catch (MqttException e) {
                             log.error("Error disconnecting MQTT client", e);
+                            MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-close-failed", "connectionLost",getLocalIp());
                         }
+                        throw new RuntimeException("Reconnect to MQTT server failed",exception);
                     }
                 }
             }
@@ -251,14 +309,19 @@ public class MqttSourceTask extends SourceTask {
 
 
                 // Create a new Kafka source record from the received MQTT message and add it to the records list.
-                lock.lock();
-                SourceRecord sourceRecord = new SourceRecord(
-                        KafkaUtils.getPartition(kafkaTopic, topic),
-                        Collections.singletonMap(OFFSET_TIMESTAMP_KEY, bridgeMessage.getTimestamp()),
-                        kafkaTopic, null, bridgeMessage.getContent());
-                records.add(sourceRecord);
-                mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
-                lock.unlock();
+                try {
+                    lock.lock();
+                    MetricsUtils.incrementGauge(sourceTaskLockStatus,getLocalIp());
+                    SourceRecord sourceRecord = new SourceRecord(
+                            KafkaUtils.getPartition(kafkaTopic, topic),
+                            Collections.singletonMap(OFFSET_TIMESTAMP_KEY, bridgeMessage.getTimestamp()),
+                            kafkaTopic, null, bridgeMessage.getContent());
+                    records.add(sourceRecord);
+                    mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
+                } finally {
+                    lock.unlock();
+                    MetricsUtils.decrementGauge(sourceTaskLockStatus,getLocalIp());
+                }
             }
 
 
@@ -277,6 +340,7 @@ public class MqttSourceTask extends SourceTask {
             running.set(false);
         } catch (MqttException e) {
             log.error("Close mqttClient failed...");
+            MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-close-failed", "stop",getLocalIp());
             throw new RuntimeException(e);
         }
         log.info("Stopped MQTT Source Task");
@@ -301,15 +365,31 @@ public class MqttSourceTask extends SourceTask {
         try {
             // Complete the message arrival process for the MQTT message with the given ID and QoS level
             client.messageArrivedComplete(idAndQos.getKey(), idAndQos.getValue());
+            MetricsUtils.incrementCounter(sourceTaskMsgCounter,getLocalIp());
             log.debug("Ack mqtt message with id: {}", idAndQos.getKey());
             log.debug("Success send record: {}", record.value());
         } catch (MqttException e) {
-            // Log an error message if the acknowledgment of the MQTT message fails
             log.error("Ack mqtt message failed for record:{}, mqtt-msgId:{}", record, idAndQos.getKey(), e);
+            MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-ack-failed", "commitRecord",getLocalIp());
             // Throw a RetryableException with a custom error message
             throw new RetryableException("Ack mqtt message failed for record:%s, mqtt-msgId:%s",
                     record.toString(), String.valueOf(idAndQos.getKey()));
         }
+    }
+
+
+    // 获取本机ip
+    private String getLocalIp() {
+        if (localIp == null || localIp.isEmpty()) {
+            try {
+                InetAddress address = InetAddress.getLocalHost();
+                localIp = address.getHostAddress();
+            } catch (UnknownHostException e) {
+                log.error("getLocalIp failed", e);
+                localIp = "127.0.0.1";
+            }
+        }
+        return localIp;
     }
 
 

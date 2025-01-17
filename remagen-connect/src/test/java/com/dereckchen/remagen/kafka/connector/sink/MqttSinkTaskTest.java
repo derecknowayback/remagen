@@ -7,7 +7,7 @@ import com.dereckchen.remagen.exceptions.RetryableException;
 import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.JsonUtils;
 import com.dereckchen.remagen.utils.KafkaUtils;
-import com.dereckchen.remagen.utils.MQTTUtil;
+import com.dereckchen.remagen.utils.MQTTUtils;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -35,7 +35,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({System.class, MqttSinkTask.class, JsonUtils.class, KafkaUtils.class, MQTTUtil.class})
+@PrepareForTest({System.class, MqttSinkTask.class, JsonUtils.class, KafkaUtils.class, MQTTUtils.class})
 public class MqttSinkTaskTest {
 
     private MqttSinkTask mqttSinkTask;
@@ -51,17 +51,17 @@ public class MqttSinkTaskTest {
         mqttSinkTask = spy(new MqttSinkTask());
         mockStatic(JsonUtils.class);
         mockStatic(KafkaUtils.class);
-        mockStatic(MQTTUtil.class);
+        mockStatic(MQTTUtils.class);
 
-        when(MQTTUtil.getMqttClient(null)).thenReturn(mqttClient);
-        when(MQTTUtil.getMqttClient(any())).thenReturn(mqttClient);
+        when(MQTTUtils.getMqttClient(null)).thenReturn(mqttClient);
+        when(MQTTUtils.getMqttClient(any())).thenReturn(mqttClient);
 
-        when(MQTTUtil.defaultOptions(null)).thenReturn(new MqttConnectOptions());
-        when(MQTTUtil.defaultOptions(any())).thenReturn(new MqttConnectOptions());
+        when(MQTTUtils.defaultOptions(null)).thenReturn(new MqttConnectOptions());
+        when(MQTTUtils.defaultOptions(any())).thenReturn(new MqttConnectOptions());
 
         MQTTConfig mqttConfig = MQTTConfig.builder().topic("ss").build();
-        when(MQTTUtil.parseConfig(null)).thenReturn(mqttConfig);
-        when(MQTTUtil.parseConfig(any())).thenReturn(mqttConfig);
+        when(MQTTUtils.parseConfig(null)).thenReturn(mqttConfig);
+        when(MQTTUtils.parseConfig(any())).thenReturn(mqttConfig);
 
         KafkaServerConfig kafkaServerConfig = KafkaServerConfig.builder().kafkaTopics("").build();
         when(KafkaUtils.parseConfig(null)).thenReturn(kafkaServerConfig);
@@ -147,9 +147,9 @@ public class MqttSinkTaskTest {
         when(JsonUtils.toJsonBytes(any())).thenReturn(new byte[]{});
         when(mqttClient.isConnected()).thenReturn(false);
 
-        PowerMockito.when(MQTTUtil.getMqttClient(any(MQTTConfig.class))).thenReturn(mqttClient);
-        PowerMockito.when(MQTTUtil.defaultOptions(any(MQTTConfig.class))).thenReturn(new MqttConnectOptions());
-        PowerMockito.doNothing().when(MQTTUtil.class, "tryReconnect", any(), any(), any(), any());
+        PowerMockito.when(MQTTUtils.getMqttClient(any(MQTTConfig.class))).thenReturn(mqttClient);
+        PowerMockito.when(MQTTUtils.defaultOptions(any(MQTTConfig.class))).thenReturn(new MqttConnectOptions());
+        PowerMockito.doNothing().when(MQTTUtils.class, "tryReconnect", any(), any(), any(), any());
 
         doNothing().when(mqttClient).connect(any(MqttConnectOptions.class));
         doNothing().when(mqttClient).publish(anyString(), any(MqttMessage.class));
@@ -166,8 +166,8 @@ public class MqttSinkTaskTest {
         when(sinkRecord.value()).thenReturn(new Object());
         when(JsonUtils.toJsonBytes(any())).thenReturn(new byte[]{});
         when(mqttClient.isConnected()).thenReturn(true);
-        PowerMockito.when(MQTTUtil.getMqttClient(any(MQTTConfig.class))).thenReturn(mqttClient);
-        PowerMockito.when(MQTTUtil.defaultOptions(any(MQTTConfig.class))).thenReturn(new MqttConnectOptions());
+        PowerMockito.when(MQTTUtils.getMqttClient(any(MQTTConfig.class))).thenReturn(mqttClient);
+        PowerMockito.when(MQTTUtils.defaultOptions(any(MQTTConfig.class))).thenReturn(new MqttConnectOptions());
         doThrow(new MqttException(0)).when(mqttClient).publish(anyString(), any(MqttMessage.class));
 
         assertThrows(RetryableException.class, () -> mqttSinkTask.sendMQTT(Collections.singletonList(sinkRecord)));

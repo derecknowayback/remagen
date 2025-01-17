@@ -7,8 +7,12 @@ import com.dereckchen.remagen.kakfa.restful.request.get.GetAllConnectorsRequest;
 import com.dereckchen.remagen.kakfa.restful.request.get.GetConnectorRequest;
 import com.dereckchen.remagen.kakfa.restful.request.post.CreateConnectorReq;
 import com.dereckchen.remagen.models.ConnectorInfoV2;
+import com.dereckchen.remagen.utils.MetricsUtils;
+import io.prometheus.client.Counter;
+import io.prometheus.client.Gauge;
+import io.prometheus.client.Histogram;
+import io.prometheus.client.exporter.HTTPServer;
 import lombok.Data;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.CreateConnectorRequest.InitialState;
 
 import java.util.List;
@@ -22,11 +26,17 @@ public class KafkaConnectManager {
     private boolean needHttps;
 
     private RestManager restManager;
+    private Histogram lantencyHistogram;
+    private Counter counter;
+    private Gauge gauge;
 
     public KafkaConnectManager(String host, String port, boolean needHttps) {
         this.host = host;
         this.port = port;
         this.restManager = new RestManager(host, port, needHttps);
+        lantencyHistogram = MetricsUtils.getHistogram("kafka_connect_request_latency", "host","request_name","method");
+        counter = MetricsUtils.getCounter("kafka_connect_request_counter", "host","request_name","method");
+        gauge = MetricsUtils.getGauge("kafka_connect_active_requests", "host","request_name","method");
     }
 
     /**
@@ -92,21 +102,25 @@ public class KafkaConnectManager {
      * @throws RuntimeException If the request method is not supported.
      */
     public <T> T sendRequest(RestfulRequest<T> request) {
-        // Determine the HTTP method of the request
+        T resp = null;
+        long requestStart = System.currentTimeMillis();
         switch (request.getRequestMethod()) {
-            // If the method is GET, send a GET request and return the response
+            // Determine the HTTP method of the request
             case GET:
-                return restManager.sendGetRequest(request);
-            // If the method is POST, send a POST request and return the response
+                resp = restManager.sendGetRequest(request);
+                break;
             case POST:
-                return restManager.sendPostRequest(request);
-            // If the method is DELETE, send a DELETE request and return the response
+                resp = restManager.sendPostRequest(request);
+                break;
             case DELETE:
-                return restManager.sendDeleteRequest(request);
-            // If the method is not supported, throw an exception
+                resp = restManager.sendDeleteRequest(request);
+                break;
             default:
                 throw new RuntimeException("unsupported request method");
         }
+        MetricsUtils.observeRequestLatency(lantencyHistogram,
+                System.currentTimeMillis() - requestStart,host,request.getRequestName(),request.getRequestMethod().name());
+        return resp;
     }
 
 

@@ -25,6 +25,10 @@ public interface RestfulRequest<Resp> {
         return null;
     }
 
+    default String getRequestName() {
+        return this.getClass().getSimpleName();
+    }
+
     default Map<String, String> getRequestHeader() {
         return RestfulRequest.DEFAULT_HEADER;
     }

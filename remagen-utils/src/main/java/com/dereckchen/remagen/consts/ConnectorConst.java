@@ -16,6 +16,7 @@ public class ConnectorConst {
     public static final String PROPS_TASKS_SOURCE_TOPIC = "topic";
 
     // MQTT
+    public static final int MQTT_QOS = 1;
     public static final int MQTT_MAX_CONNECT_RETRY_COUNT = 10;
     public static final int MQTT_RECONNECT_PERIOD = 1000;
     public static final String PROPS_MQTT_PASSWORD = "mqtt.password";
@@ -39,5 +40,9 @@ public class ConnectorConst {
     // Kafka offset manage
     public static final String OFFSET_TIMESTAMP_KEY = "timestamp";
 
-
+    // metrics
+    public static final String PUSH_GATE_WAY_ENV = "PUSH_GATE_WAY_URL";
+    public static final String SOURCE_TASK_METRICS = "source_task_metrics";
+    public static final String SINK_TASK_METRICS = "sink_task_metrics";
+    public static final int PUSH_GATE_WAY_INTERVAL = 10 * 1000;
 }

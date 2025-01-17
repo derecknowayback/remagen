@@ -1,0 +1,16 @@
+# prometheus.yml
+global:
+  scrape_interval: 5s # 每15秒抓取一次指标
+
+scrape_configs:
+  - job_name: 'prometheus' # 监控 Prometheus 自身
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'pushgateway'
+    static_configs:
+      - targets: [ 'pushgateway:9091' ]
+
+  - job_name: 'host'
+    static_configs:
+      - targets: ['host.docker.internal:8080']

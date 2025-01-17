@@ -16,7 +16,7 @@ import java.util.function.BooleanSupplier;
 
 
 @Slf4j
-public class MQTTUtil {
+public class MQTTUtils {
 
 
     public static MQTTConfig parseConfig(Map<String, String> props) {

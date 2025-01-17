@@ -3,7 +3,7 @@ package com.dereckchen.remagen.kafka.connector.source;
 
 import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.KafkaUtils;
-import com.dereckchen.remagen.utils.MQTTUtil;
+import com.dereckchen.remagen.utils.MQTTUtils;
 import org.apache.kafka.connect.source.SourceTaskContext;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({KafkaUtils.class, MQTTUtil.class, System.class, MqttSourceTask.class})
+@PrepareForTest({KafkaUtils.class, MQTTUtils.class, System.class, MqttSourceTask.class})
 public class MqttSourceTaskTest {
 
     @Mock
@@ -50,10 +50,10 @@ public class MqttSourceTaskTest {
         properties.put("mqtt.password", "pass");
         properties.put("mqtt.clientid", "clientId");
 
-        mockStatic(MQTTUtil.class);
+        mockStatic(MQTTUtils.class);
         mockStatic(KafkaUtils.class);
 
-        when(MQTTUtil.getMqttClient(any())).thenReturn(mqttClient);
+        when(MQTTUtils.getMqttClient(any())).thenReturn(mqttClient);
 
         KafkaServerConfig kafkaServerConfig = KafkaServerConfig.builder()
                 .kafkaTopics("cc").build();

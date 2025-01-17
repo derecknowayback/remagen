@@ -60,26 +60,24 @@ public class KafkaBridgeConsumer<K,V> extends KafkaConsumer<K,V> {
     }
 
 
-    void subscribe(Collection<String> topics, BridgeOption bridgeOption) {
+    public void subscribe(Collection<String> topics, BridgeOption bridgeOption) {
         checkConnector(bridgeOption);
         super.subscribe(topics);
     }
 
-    void subscribe(Collection<String> topics, ConsumerRebalanceListener callback,BridgeOption bridgeOption) {
+    public void subscribe(Collection<String> topics, ConsumerRebalanceListener callback,BridgeOption bridgeOption) {
         checkConnector(bridgeOption);
         super.subscribe(topics, callback);
     }
 
 
-
-
-    void subscribe(Pattern pattern, ConsumerRebalanceListener callback,BridgeOption bridgeOption) {
+    public void subscribe(Pattern pattern, ConsumerRebalanceListener callback,BridgeOption bridgeOption) {
         checkConnector(bridgeOption);
         super.subscribe(pattern, callback);
     }
 
 
-    void subscribe(Pattern pattern,BridgeOption bridgeOption) {
+    public void subscribe(Pattern pattern,BridgeOption bridgeOption) {
         checkConnector(bridgeOption);
         super.subscribe(pattern);
     }
@@ -104,8 +102,8 @@ public class KafkaBridgeConsumer<K,V> extends KafkaConsumer<K,V> {
         if (!allConnectors.contains(connectorName)) {
             log.warn("Connector {} not exists", connectorName);
             ConnectorInfoV2 connector = connectManager.createConnector(connectorName, option.getProps());
-            if (connector.getErrorCode() != 0) {
-                log.error("create connector {} failed, errorCode:{}, errorMessage:{}", connectorName, connector.getErrorCode(), connector.getMessage());
+            if (connector.getErrorCode() == null) {
+                log.error("create connector {} failed, errorMessage:{}", connectorName,  connector.getMessage());
                 throw new RetryableException("create connector failed");
             }
             log.info("create connector {} success", connectorName);
