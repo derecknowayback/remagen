@@ -52,12 +52,16 @@ public class MqttSourceTask extends SourceTask {
     private String kafkaTopic;
     private String localIp;
 
-    private Counter sourceTaskMsgCounter;
-    private Counter sourceTaskErrCounter;
-    private Gauge sourceTaskLockStatus;
+    private static Counter sourceTaskMsgCounter;
+    private static Counter sourceTaskErrCounter;
+    private static Gauge sourceTaskLockStatus;
+    private static PushGateway pushGateway;
+    private static Thread pushMetricsThread;
 
-    private PushGateway pushGateway;
-    private Thread pushMetricsThread;
+    static {
+        initMetrics();
+    }
+
 
     @Override
     public String version() {
@@ -100,14 +104,11 @@ public class MqttSourceTask extends SourceTask {
         // Set the callback
         setCallback();
 
-        // init metrics
-        initMetrics();
-
         // Start listening
         subscribe();
     }
 
-    private void initMetrics() {
+    private static void initMetrics() {
         sourceTaskMsgCounter= MetricsUtils.getCounter("source_task_msg_counter","host");
         sourceTaskErrCounter = MetricsUtils.getCounter("source_task_err_counter", "name","method","host");
         sourceTaskLockStatus = MetricsUtils.getGauge("source_task_lock_status", "host");
@@ -119,7 +120,7 @@ public class MqttSourceTask extends SourceTask {
             String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
             pushGateway = new PushGateway(gatewayUrl);
             pushMetricsThread = new Thread(() -> {
-                while (running.get()) {
+                while (!Thread.currentThread().isInterrupted()) {
                     try {
                         pushGateway.push(defaultRegistry, SOURCE_TASK_METRICS);
                         Thread.sleep(PUSH_GATE_WAY_INTERVAL);

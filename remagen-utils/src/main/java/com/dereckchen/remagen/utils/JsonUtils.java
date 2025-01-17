@@ -2,11 +2,17 @@ package com.dereckchen.remagen.utils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class JsonUtils {
-    private static final ObjectMapper mapper = new ObjectMapper();
+
+    private static final ObjectMapper mapper;
+    static {
+        mapper = new ObjectMapper();
+        mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+    }
 
     public static String toJsonString(Object object) {
         try {

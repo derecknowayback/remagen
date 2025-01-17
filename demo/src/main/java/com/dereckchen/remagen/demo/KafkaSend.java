@@ -45,19 +45,6 @@ public class KafkaSend {
         props.put("kafkaConnectManager.port", "38083");
         props.put("kafkaConnectManager.needHttps", "false");
 
-//        AdminClient adminClient = AdminClient.create(props);
-//
-//        DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Collections.singleton(topic));
-//
-//        Map<String, TopicDescription> topicDescriptionMap = describeTopicsResult.all().get();
-//        for (Map.Entry<String, TopicDescription> entry : topicDescriptionMap.entrySet()) {
-//            TopicDescription topicDescription = entry.getValue();
-//            System.out.println("Topic: " + topicDescription.name());
-//            for (TopicPartitionInfo partitionInfo : topicDescription.partitions()) {
-//                System.out.println("Partition: " + partitionInfo.partition());
-//                System.out.println("  Leader: " + partitionInfo.leader().id());
-//            }
-//        }
 
         // 创建生产者实例
         Producer<String, String> producer = new KafkaProducer<>(props);

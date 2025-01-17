@@ -14,8 +14,8 @@ public class MqttSubscribe {
     public static void main(String[] args) throws Exception {
         String serverURI = "tcp://localhost:1883";
         String clientId = "cccmqtt-source-demo" + Math.random();
-        String mqtt_topic = "mqtt_test_cjp1";
-        String kafka_topic = "new_topic_1";
+        String mqtt_topic = "test_mqtt";
+        String kafka_topic = "new_topic";
 
         KafkaServerConfig kafkaServerConfig = KafkaServerConfig.builder().host("127.0.0.1").port("38083").needHttps(false).build();
         MqttBridgeClient mqttBridgeClient = new MqttBridgeClient(serverURI, clientId, kafkaServerConfig);
@@ -33,6 +33,9 @@ public class MqttSubscribe {
 
     private static Map<String, String> getProps(String mqtt_topic, String kafka_topic, String clientId) {
         Map<String, String> props = new HashMap<>();
+        props.put("kafkaConnectManager.host", "127.0.0.1");
+        props.put("kafkaConnectManager.port", "38083");
+        props.put("kafkaConnectManager.needHttps", "false");
         props.put("key.converter", "org.apache.kafka.connect.storage.StringConverter");
         props.put("value.converter", "org.apache.kafka.connect.storage.StringConverter");
         props.put("connector.class", "com.dereckchen.remagen.kafka.connector.sink.MqttSinkConnector");

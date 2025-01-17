@@ -16,19 +16,21 @@ public class MetricsUtils {
     public static Counter getCounter(String name,String... labelNames) {
         return Counter.build()
                .name(name)
+                .help(name)
                .labelNames(labelNames)
                .register();
     }
 
 
     public static Gauge getGauge(String name,String... labelNames) {
-        return Gauge.build().name(name).labelNames(labelNames).register();
+        return Gauge.build().name(name).help(name).labelNames(labelNames).register();
     }
 
 
     public static Histogram getHistogram(String name,String... labelNames) {
         return Histogram.build()
                 .name(name)
+                .help(name)
                 .labelNames(labelNames)
                 .register();
     }

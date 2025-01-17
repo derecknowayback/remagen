@@ -38,10 +38,16 @@ public class MqttSinkTask extends SinkTask {
     private Set<String> kafkaTopics;
     private String localIp;
 
-    private Counter sinkTaskMsgCounter;
-    private Counter sinkTaskErrCounter;
-    private PushGateway pushGateway;
-    private Thread pushMetricsThread;
+    private static Counter sinkTaskMsgCounter;
+    private static Counter sinkTaskErrCounter;
+    private static PushGateway pushGateway;
+    private static Thread pushMetricsThread;
+
+    static {
+        // init metrics
+        initMetrics();
+    }
+
 
     @Override
     public String version() {
@@ -67,12 +73,9 @@ public class MqttSinkTask extends SinkTask {
 
         // init running status var
         running.set(true);
-
-        // init metrics
-        initMetrics();
     }
 
-    private void initMetrics() {
+    private static void initMetrics() {
         sinkTaskErrCounter = MetricsUtils.getCounter("sink_task_err_counter", "name","method","host");
         sinkTaskMsgCounter = MetricsUtils.getCounter("sink_task_msg_counter","host");
         CollectorRegistry defaultRegistry = CollectorRegistry.defaultRegistry;
@@ -82,7 +85,7 @@ public class MqttSinkTask extends SinkTask {
             String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
             pushGateway = new PushGateway(gatewayUrl);
             pushMetricsThread = new Thread(() -> {
-                while (running.get()) {
+                while (!Thread.currentThread().isInterrupted()) {
                     try {
                         pushGateway.push(defaultRegistry, SINK_TASK_METRICS);
                         Thread.sleep(PUSH_GATE_WAY_INTERVAL);
