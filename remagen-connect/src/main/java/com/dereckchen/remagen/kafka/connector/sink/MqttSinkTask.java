@@ -31,13 +31,6 @@ import static com.dereckchen.remagen.consts.ConnectorConst.*;
 public class MqttSinkTask extends SinkTask {
 
 
-    private MqttClient mqttClient;
-    private MQTTConfig mqttConfig;
-    private MqttConnectOptions mqttConnectOptions;
-    private AtomicBoolean running = new AtomicBoolean(false);
-    private Set<String> kafkaTopics;
-    private String localIp;
-
     private static Counter sinkTaskMsgCounter;
     private static Counter sinkTaskErrCounter;
     private static PushGateway pushGateway;
@@ -48,6 +41,34 @@ public class MqttSinkTask extends SinkTask {
         initMetrics();
     }
 
+    private MqttClient mqttClient;
+    private MQTTConfig mqttConfig;
+    private MqttConnectOptions mqttConnectOptions;
+    private AtomicBoolean running = new AtomicBoolean(false);
+    private Set<String> kafkaTopics;
+    private String localIp;
+
+    private static void initMetrics() {
+        sinkTaskErrCounter = MetricsUtils.getCounter("sink_task_err_counter", "name", "method", "host");
+        sinkTaskMsgCounter = MetricsUtils.getCounter("sink_task_msg_counter", "host");
+        try {
+            String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
+            pushGateway = new PushGateway(gatewayUrl);
+            pushMetricsThread = new Thread(() -> {
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        pushGateway.push(CollectorRegistry.defaultRegistry, SINK_TASK_METRICS);
+                        Thread.sleep(PUSH_GATE_WAY_INTERVAL);
+                    } catch (Exception e) {
+                        log.error("pushGateway Exception", e);
+                    }
+                }
+            });
+            pushMetricsThread.start();
+        } catch (Exception e) {
+            log.error("init metrics gateway error: {}", e.getMessage());
+        }
+    }
 
     @Override
     public String version() {
@@ -73,28 +94,6 @@ public class MqttSinkTask extends SinkTask {
 
         // init running status var
         running.set(true);
-    }
-
-    private static void initMetrics() {
-        sinkTaskErrCounter = MetricsUtils.getCounter("sink_task_err_counter", "name","method","host");
-        sinkTaskMsgCounter = MetricsUtils.getCounter("sink_task_msg_counter","host");
-        try {
-            String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
-            pushGateway = new PushGateway(gatewayUrl);
-            pushMetricsThread = new Thread(() -> {
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        pushGateway.push(CollectorRegistry.defaultRegistry, SINK_TASK_METRICS);
-                        Thread.sleep(PUSH_GATE_WAY_INTERVAL);
-                    } catch (Exception e) {
-                        log.error("pushGateway Exception",e);
-                    }
-                }
-            });
-            pushMetricsThread.start();
-        } catch (Exception e) {
-            log.error("init metrics gateway error: {}", e.getMessage());
-        }
     }
 
     /**
@@ -148,7 +147,7 @@ public class MqttSinkTask extends SinkTask {
             sendMQTT(records);
         } catch (Exception e) {
             log.error("Send mqtt message error, records: {}", records, e);
-            MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-send-failed", "put",getLocalIp());
+            MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-send-failed", "put", getLocalIp());
             throw new RuntimeException(e);
         }
     }
@@ -178,7 +177,7 @@ public class MqttSinkTask extends SinkTask {
                 "Received {} records. First record kafka coordinates:({}-{}-{}). Writing them to the database...",
                 recordsCount, first.topic(), first.kafkaPartition(), first.kafkaOffset()
         );
-        MetricsUtils.incrementCounter(sinkTaskMsgCounter, recordsCount,getLocalIp());
+        MetricsUtils.incrementCounter(sinkTaskMsgCounter, recordsCount, getLocalIp());
     }
 
 
@@ -205,8 +204,8 @@ public class MqttSinkTask extends SinkTask {
                 }
                 mqttClient.publish(mqttConfig.getTopic(), mqttMessage);
             } catch (MqttException e) {
-                log.error("Send mqtt message error, record:{}", record,e);
-                MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-send-failed", "sendMQTT",getLocalIp());
+                log.error("Send mqtt message error, record:{}", record, e);
+                MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-send-failed", "sendMQTT", getLocalIp());
                 throw new RetryableException(e);
             }
         }
@@ -231,7 +230,7 @@ public class MqttSinkTask extends SinkTask {
             mqttClient.connect(mqttConnectOptions);
         } catch (Exception e) {
             log.error("Connect to mqtt broker error", e);
-            MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-initialize-failed", "initMqttClient",getLocalIp());
+            MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-initialize-failed", "initMqttClient", getLocalIp());
             // Throw a retryable exception to indicate that the connection may need to be retried
             throw new RetryableException(e);
         }
@@ -256,7 +255,7 @@ public class MqttSinkTask extends SinkTask {
         } catch (Exception e) {
             // If an exception occurs during the closure process, log the error details
             log.error("Close mqttClient error", e);
-            MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-close-failed", "stop",getLocalIp());
+            MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-close-failed", "stop", getLocalIp());
             throw new RuntimeException(e);
         }
     }

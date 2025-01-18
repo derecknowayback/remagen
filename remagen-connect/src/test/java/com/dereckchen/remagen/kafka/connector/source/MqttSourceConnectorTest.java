@@ -4,12 +4,8 @@ package com.dereckchen.remagen.kafka.connector.source;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static com.dereckchen.remagen.consts.ConnectorConst.VERSION_ENV_KEY;
 import static org.junit.Assert.assertEquals;

@@ -11,11 +11,11 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Slf4j
-public class KafkaBridgeConsumer<K,V> extends KafkaConsumer<K,V> {
+public class KafkaBridgeConsumer<K, V> extends KafkaConsumer<K, V> {
 
 
     private KafkaConnectManager connectManager;
@@ -25,17 +25,18 @@ public class KafkaBridgeConsumer<K,V> extends KafkaConsumer<K,V> {
     public KafkaBridgeConsumer(Map<String, Object> configs) {
         super(configs);
     }
-    public KafkaBridgeConsumer (Map<String, Object> configs,String host, String port, boolean needHttps) {
+
+    public KafkaBridgeConsumer(Map<String, Object> configs, String host, String port, boolean needHttps) {
         super(configs);
         connectManager = new KafkaConnectManager(host, port, needHttps);
     }
 
 
-
     public KafkaBridgeConsumer(Properties properties) {
         super(properties);
     }
-    public KafkaBridgeConsumer(Properties properties,String host, String port, boolean needHttps) {
+
+    public KafkaBridgeConsumer(Properties properties, String host, String port, boolean needHttps) {
         super(properties);
         connectManager = new KafkaConnectManager(host, port, needHttps);
     }
@@ -44,17 +45,18 @@ public class KafkaBridgeConsumer<K,V> extends KafkaConsumer<K,V> {
     public KafkaBridgeConsumer(Properties properties, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
         super(properties, keyDeserializer, valueDeserializer);
     }
-    public KafkaBridgeConsumer(Properties properties, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer,String host, String port, boolean needHttps) {
+
+    public KafkaBridgeConsumer(Properties properties, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, String host, String port, boolean needHttps) {
         super(properties, keyDeserializer, valueDeserializer);
         connectManager = new KafkaConnectManager(host, port, needHttps);
     }
 
 
-
     public KafkaBridgeConsumer(Map<String, Object> configs, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
         super(configs, keyDeserializer, valueDeserializer);
     }
-    public KafkaBridgeConsumer(Map<String, Object> configs, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer,String host, String port, boolean needHttps) {
+
+    public KafkaBridgeConsumer(Map<String, Object> configs, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, String host, String port, boolean needHttps) {
         super(configs, keyDeserializer, valueDeserializer);
         connectManager = new KafkaConnectManager(host, port, needHttps);
     }
@@ -65,19 +67,19 @@ public class KafkaBridgeConsumer<K,V> extends KafkaConsumer<K,V> {
         super.subscribe(topics);
     }
 
-    public void subscribe(Collection<String> topics, ConsumerRebalanceListener callback,BridgeOption bridgeOption) {
+    public void subscribe(Collection<String> topics, ConsumerRebalanceListener callback, BridgeOption bridgeOption) {
         checkConnector(bridgeOption);
         super.subscribe(topics, callback);
     }
 
 
-    public void subscribe(Pattern pattern, ConsumerRebalanceListener callback,BridgeOption bridgeOption) {
+    public void subscribe(Pattern pattern, ConsumerRebalanceListener callback, BridgeOption bridgeOption) {
         checkConnector(bridgeOption);
         super.subscribe(pattern, callback);
     }
 
 
-    public void subscribe(Pattern pattern,BridgeOption bridgeOption) {
+    public void subscribe(Pattern pattern, BridgeOption bridgeOption) {
         checkConnector(bridgeOption);
         super.subscribe(pattern);
     }
@@ -96,21 +98,20 @@ public class KafkaBridgeConsumer<K,V> extends KafkaConsumer<K,V> {
     }
 
 
-    public void checkConnector (BridgeOption option) {
+    public void checkConnector(BridgeOption option) {
         String connectorName = ConnectorUtils.getConnectorName(option.getMqttTopic(), option.getKafkaTopic());
         List<String> allConnectors = connectManager.getAllConnectors();
         if (!allConnectors.contains(connectorName)) {
             log.warn("Connector {} not exists", connectorName);
             ConnectorInfoV2 connector = connectManager.createConnector(connectorName, option.getProps());
             if (connector.getErrorCode() == null) {
-                log.error("create connector {} failed, errorMessage:{}", connectorName,  connector.getMessage());
+                log.error("create connector {} failed, errorMessage:{}", connectorName, connector.getMessage());
                 throw new RetryableException("create connector failed");
             }
             log.info("create connector {} success", connectorName);
         }
         connectorNames.add(connectorName);
     }
-
 
 
 }

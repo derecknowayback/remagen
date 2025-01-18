@@ -1,8 +1,6 @@
 package com.dereckchen.remagen.kakfa.restful.request.get;
 
 
-import com.dereckchen.remagen.kakfa.restful.request.RestfulRequest;
-import com.dereckchen.remagen.utils.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

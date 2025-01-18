@@ -7,7 +7,6 @@ import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.eclipse.jetty.http.HttpMethod;
 
 @Data

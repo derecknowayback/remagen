@@ -7,7 +7,10 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 @Slf4j
 public class KafkaSubscribe {
@@ -30,14 +33,14 @@ public class KafkaSubscribe {
 
         // 创建消费者实例
         String host = "localhost", port = "38083";
-        KafkaBridgeConsumer<String,String> consumer = new KafkaBridgeConsumer<>(props,host,port,false);
+        KafkaBridgeConsumer<String, String> consumer = new KafkaBridgeConsumer<>(props, host, port, false);
 
         // 订阅主题
         BridgeOption bridgeOption = new BridgeOption();
         bridgeOption.setKafkaTopic(topic);
         bridgeOption.setMqttTopic(mqttTopic);
-        bridgeOption.setProps(getBrideProps(topic,mqttTopic));
-        consumer.subscribe(Collections.singletonList(topic),bridgeOption);
+        bridgeOption.setProps(getBrideProps(topic, mqttTopic));
+        consumer.subscribe(Collections.singletonList(topic), bridgeOption);
 
         // 消费消息
         try {

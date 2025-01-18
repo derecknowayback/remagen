@@ -1,7 +1,6 @@
 package com.dereckchen.remagen.kafka.connector.source;
 
 
-import io.prometheus.client.exporter.PushGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;

@@ -11,7 +11,6 @@ import com.dereckchen.remagen.utils.MetricsUtils;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
-import io.prometheus.client.exporter.HTTPServer;
 import lombok.Data;
 import org.apache.kafka.connect.runtime.rest.entities.CreateConnectorRequest.InitialState;
 
@@ -34,9 +33,9 @@ public class KafkaConnectManager {
         this.host = host;
         this.port = port;
         this.restManager = new RestManager(host, port, needHttps);
-        lantencyHistogram = MetricsUtils.getHistogram("kafka_connect_request_latency", "host","request_name","method");
-        counter = MetricsUtils.getCounter("kafka_connect_request_counter", "host","request_name","method");
-        gauge = MetricsUtils.getGauge("kafka_connect_active_requests", "host","request_name","method");
+        lantencyHistogram = MetricsUtils.getHistogram("kafka_connect_request_latency", "host", "request_name", "method");
+        counter = MetricsUtils.getCounter("kafka_connect_request_counter", "host", "request_name", "method");
+        gauge = MetricsUtils.getGauge("kafka_connect_active_requests", "host", "request_name", "method");
     }
 
     /**
@@ -119,7 +118,7 @@ public class KafkaConnectManager {
                 throw new RuntimeException("unsupported request method");
         }
         MetricsUtils.observeRequestLatency(lantencyHistogram,
-                System.currentTimeMillis() - requestStart,host,request.getRequestName(),request.getRequestMethod().name());
+                System.currentTimeMillis() - requestStart, host, request.getRequestName(), request.getRequestMethod().name());
         return resp;
     }
 

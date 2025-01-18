@@ -126,7 +126,7 @@ services:
     command:
       - bash
       - -c
-      - |        
+      - |
         #
         echo "Launching Kafka Connect worker"
         /etc/confluent/docker/run &

@@ -3,16 +3,14 @@ package com.dereckchen.remagen.utils;
 
 import com.dereckchen.remagen.consts.ConnectorConst;
 import com.dereckchen.remagen.models.BridgeConfig;
-import com.dereckchen.remagen.models.KafkaServerConfig;
-import com.dereckchen.remagen.models.MQTTConfig;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class ConnectorUtilsTest {
 

@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 public class JsonUtils {
 
     private static final ObjectMapper mapper;
+
     static {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);

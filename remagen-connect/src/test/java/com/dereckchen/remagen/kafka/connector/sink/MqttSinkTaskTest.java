@@ -5,6 +5,7 @@ import com.dereckchen.remagen.consts.ConnectorConst;
 import com.dereckchen.remagen.exceptions.PanicException;
 import com.dereckchen.remagen.exceptions.RetryableException;
 import com.dereckchen.remagen.models.KafkaServerConfig;
+import com.dereckchen.remagen.models.MQTTConfig;
 import com.dereckchen.remagen.utils.JsonUtils;
 import com.dereckchen.remagen.utils.KafkaUtils;
 import com.dereckchen.remagen.utils.MQTTUtils;
@@ -16,22 +17,22 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import java.util.*;
-
-import com.dereckchen.remagen.models.MQTTConfig;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.dereckchen.remagen.consts.ConnectorConst.VERSION_ENV_KEY;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.*;
-import static org.powermock.api.mockito.PowerMockito.when;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.when;
 
 
 @RunWith(PowerMockRunner.class)
