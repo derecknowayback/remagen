@@ -112,17 +112,13 @@ public class MqttSourceTask extends SourceTask {
         sourceTaskMsgCounter= MetricsUtils.getCounter("source_task_msg_counter","host");
         sourceTaskErrCounter = MetricsUtils.getCounter("source_task_err_counter", "name","method","host");
         sourceTaskLockStatus = MetricsUtils.getGauge("source_task_lock_status", "host");
-        CollectorRegistry defaultRegistry = CollectorRegistry.defaultRegistry;
-        defaultRegistry.register(sourceTaskMsgCounter);
-        defaultRegistry.register(sourceTaskErrCounter);
-        defaultRegistry.register(sourceTaskLockStatus);
         try {
             String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
             pushGateway = new PushGateway(gatewayUrl);
             pushMetricsThread = new Thread(() -> {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
-                        pushGateway.push(defaultRegistry, SOURCE_TASK_METRICS);
+                        pushGateway.push(CollectorRegistry.defaultRegistry, SOURCE_TASK_METRICS);
                         Thread.sleep(PUSH_GATE_WAY_INTERVAL);
                     } catch (Exception e) {
                         log.error("pushGateway Exception",e);

@@ -78,16 +78,13 @@ public class MqttSinkTask extends SinkTask {
     private static void initMetrics() {
         sinkTaskErrCounter = MetricsUtils.getCounter("sink_task_err_counter", "name","method","host");
         sinkTaskMsgCounter = MetricsUtils.getCounter("sink_task_msg_counter","host");
-        CollectorRegistry defaultRegistry = CollectorRegistry.defaultRegistry;
-        defaultRegistry.register(sinkTaskMsgCounter);
-        defaultRegistry.register(sinkTaskErrCounter);
         try {
             String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
             pushGateway = new PushGateway(gatewayUrl);
             pushMetricsThread = new Thread(() -> {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
-                        pushGateway.push(defaultRegistry, SINK_TASK_METRICS);
+                        pushGateway.push(CollectorRegistry.defaultRegistry, SINK_TASK_METRICS);
                         Thread.sleep(PUSH_GATE_WAY_INTERVAL);
                     } catch (Exception e) {
                         log.error("pushGateway Exception",e);

@@ -17,7 +17,7 @@ import java.util.concurrent.ExecutionException;
 
 @Slf4j
 public class KafkaSend {
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
+    public static void main(String[] args) throws InterruptedException {
         // Kafka broker地址
         String bootstrapServers = "localhost:39092,localhost:39093,localhost:39094";
         // 主题名称
