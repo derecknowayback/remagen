@@ -9,9 +9,7 @@ import com.dereckchen.remagen.utils.JsonUtils;
 import com.dereckchen.remagen.utils.KafkaUtils;
 import com.dereckchen.remagen.utils.MQTTUtils;
 import com.dereckchen.remagen.utils.MetricsUtils;
-import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
-import io.prometheus.client.exporter.PushGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
@@ -29,18 +27,6 @@ import static com.dereckchen.remagen.consts.ConnectorConst.*;
 
 @Slf4j
 public class MqttSinkTask extends SinkTask {
-
-
-    private static Counter sinkTaskMsgCounter;
-    private static Counter sinkTaskErrCounter;
-    private static PushGateway pushGateway;
-    private static Thread pushMetricsThread;
-
-    static {
-        // init metrics
-        initMetrics();
-    }
-
     private MqttClient mqttClient;
     private MQTTConfig mqttConfig;
     private MqttConnectOptions mqttConnectOptions;
@@ -48,26 +34,12 @@ public class MqttSinkTask extends SinkTask {
     private Set<String> kafkaTopics;
     private String localIp;
 
-    private static void initMetrics() {
+    private Counter sinkTaskMsgCounter;
+    private Counter sinkTaskErrCounter;
+
+    private void initMetrics() {
         sinkTaskErrCounter = MetricsUtils.getCounter("sink_task_err_counter", "name", "method", "host");
         sinkTaskMsgCounter = MetricsUtils.getCounter("sink_task_msg_counter", "host");
-        try {
-            String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
-            pushGateway = new PushGateway(gatewayUrl);
-            pushMetricsThread = new Thread(() -> {
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        pushGateway.push(CollectorRegistry.defaultRegistry, SINK_TASK_METRICS);
-                        Thread.sleep(PUSH_GATE_WAY_INTERVAL);
-                    } catch (Exception e) {
-                        log.error("pushGateway Exception", e);
-                    }
-                }
-            });
-            pushMetricsThread.start();
-        } catch (Exception e) {
-            log.error("init metrics gateway error: {}", e.getMessage());
-        }
     }
 
     @Override
@@ -91,6 +63,9 @@ public class MqttSinkTask extends SinkTask {
 
         // parse mqtt config
         parseConfig(props);
+
+        // init metrics
+        initMetrics();
 
         // init running status var
         running.set(true);

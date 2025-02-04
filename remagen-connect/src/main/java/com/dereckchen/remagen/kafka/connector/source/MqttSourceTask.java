@@ -36,18 +36,6 @@ import static com.dereckchen.remagen.utils.MQTTUtils.tryReconnect;
 
 @Slf4j
 public class MqttSourceTask extends SourceTask {
-
-
-    private static Counter sourceTaskMsgCounter;
-    private static Counter sourceTaskErrCounter;
-    private static Gauge sourceTaskLockStatus;
-    private static PushGateway pushGateway;
-    private static Thread pushMetricsThread;
-
-    static {
-        initMetrics();
-    }
-
     private BridgeConfig config;
     private MqttClient client;
     private ArrayDeque<SourceRecord> records;
@@ -58,27 +46,14 @@ public class MqttSourceTask extends SourceTask {
     private String kafkaTopic;
     private String localIp;
 
-    private static void initMetrics() {
+    private Counter sourceTaskMsgCounter;
+    private Counter sourceTaskErrCounter;
+    private Gauge sourceTaskLockStatus;
+
+    private void initMetrics() {
         sourceTaskMsgCounter = MetricsUtils.getCounter("source_task_msg_counter", "host");
         sourceTaskErrCounter = MetricsUtils.getCounter("source_task_err_counter", "name", "method", "host");
         sourceTaskLockStatus = MetricsUtils.getGauge("source_task_lock_status", "host");
-        try {
-            String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
-            pushGateway = new PushGateway(gatewayUrl);
-            pushMetricsThread = new Thread(() -> {
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        pushGateway.push(CollectorRegistry.defaultRegistry, SOURCE_TASK_METRICS);
-                        Thread.sleep(PUSH_GATE_WAY_INTERVAL);
-                    } catch (Exception e) {
-                        log.error("pushGateway Exception", e);
-                    }
-                }
-            });
-            pushMetricsThread.start();
-        } catch (Exception e) {
-            log.error("init metrics gateway error: {}", e.getMessage());
-        }
     }
 
     @Override
@@ -121,6 +96,9 @@ public class MqttSourceTask extends SourceTask {
 
         // Set the callback
         setCallback();
+
+        // init metrics
+        initMetrics();
 
         // Start listening
         subscribe();

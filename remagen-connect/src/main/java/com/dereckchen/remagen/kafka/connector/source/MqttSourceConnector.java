@@ -1,6 +1,8 @@
 package com.dereckchen.remagen.kafka.connector.source;
 
 
+import com.dereckchen.remagen.utils.MetricsUtils.FlushGatewayThread;
+import io.prometheus.client.exporter.PushGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
@@ -17,12 +19,24 @@ public class MqttSourceConnector extends SourceConnector {
 
     private Map<String, String> props;
     private String name;
+    private static Thread pushMetricsThread;
 
     @Override
     public void start(Map<String, String> map) {
         this.props = map;
         name = props.get(PROPS_CONNECTOR_NAME);
+        initMetrics();
         log.info("Starting MqttSourceConnector with name: {}...", name);
+    }
+
+    private void initMetrics() {
+        try {
+            String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
+            pushMetricsThread = new Thread(new FlushGatewayThread(new PushGateway(gatewayUrl)));
+            pushMetricsThread.start();
+        } catch (Exception e) {
+            log.error("init metrics gateway error: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -42,7 +56,12 @@ public class MqttSourceConnector extends SourceConnector {
 
     @Override
     public void stop() {
-        log.info("MqttSource Connector {} stopped...", name);
+        try {
+            pushMetricsThread.interrupt();
+            log.info("MqttSource Connector {} stopped...", name);
+        } catch (Exception e) {
+            log.error("stop metrics gateway error: {}", e.getMessage());
+        }
     }
 
     @Override

@@ -5,10 +5,12 @@ import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.models.IBridgeMessageContent;
 import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.mqtt.client.MqttBridgeClient;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 public class MqttSend {
 
     public static void main(String[] args) throws Exception {
@@ -27,12 +29,11 @@ public class MqttSend {
         MqttBridgeClient mqttBridgeClient = new MqttBridgeClient(serverURI, clientId, kafkaServerConfig);
         mqttBridgeClient.connect();
 
-
         Map<String, String> props = getProps(mqtt_topic, kafka_topic, clientId);
 
         BridgeOption bridgeOption = new BridgeOption(mqtt_topic, kafka_topic, props);
 
-        for (int i = 0; i < 20; i++) {
+        while (true){
             BridgeMessage msg = new BridgeMessage(new IBridgeMessageContent() {
                 @Override
                 public String serializeToJsonStr() {
@@ -45,11 +46,16 @@ public class MqttSend {
                 }
             }, 0, true);
             mqttBridgeClient.publish(mqtt_topic, msg, bridgeOption);
+            log.info("send msg: {}", msg);
+            Thread.sleep(1000);
         }
     }
 
     private static Map<String, String> getProps(String mqtt_topic, String kafka_topic, String clientId) {
         Map<String, String> props = new HashMap<>();
+        props.put("kafkaConnectManager.host", "127.0.0.1");
+        props.put("kafkaConnectManager.port", "38083");
+        props.put("kafkaConnectManager.needHttps", "false");
         props.put("key.converter", "org.apache.kafka.connect.storage.StringConverter");
         props.put("value.converter", "org.apache.kafka.connect.storage.StringConverter");
         props.put("connector.class", "com.dereckchen.remagen.kafka.connector.source.MqttSourceConnector");

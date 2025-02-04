@@ -104,7 +104,7 @@ public class KafkaBridgeConsumer<K, V> extends KafkaConsumer<K, V> {
         if (!allConnectors.contains(connectorName)) {
             log.warn("Connector {} not exists", connectorName);
             ConnectorInfoV2 connector = connectManager.createConnector(connectorName, option.getProps());
-            if (connector.getErrorCode() == null) {
+            if (connector.getErrorCode() != null) {
                 log.error("create connector {} failed, errorMessage:{}", connectorName, connector.getMessage());
                 throw new RetryableException("create connector failed");
             }

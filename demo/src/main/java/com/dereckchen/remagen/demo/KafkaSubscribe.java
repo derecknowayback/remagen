@@ -30,6 +30,9 @@ public class KafkaSubscribe {
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("auto.offset.reset", "earliest"); // 从最早的消息开始消费
+        props.put("kafkaConnectManager.host", "127.0.0.1");
+        props.put("kafkaConnectManager.port", "38083");
+        props.put("kafkaConnectManager.needHttps", "false");
 
         // 创建消费者实例
         String host = "localhost", port = "38083";
@@ -58,6 +61,9 @@ public class KafkaSubscribe {
 
     static Map<String, String> getBrideProps(String topic, String mqttTopic) {
         Map<String, String> props = new HashMap<>();
+        props.put("kafkaConnectManager.host", "127.0.0.1");
+        props.put("kafkaConnectManager.port", "38083");
+        props.put("kafkaConnectManager.needHttps", "false");
         props.put("connector.class", "com.dereckchen.remagen.kafka.connector.source.MqttSourceConnector");
         props.put("tasks.max", "1");
         props.put("topic", topic);

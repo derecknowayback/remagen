@@ -1,6 +1,8 @@
 package com.dereckchen.remagen.kafka.connector.sink;
 
 
+import com.dereckchen.remagen.utils.MetricsUtils.FlushGatewayThread;
+import io.prometheus.client.exporter.PushGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
@@ -17,6 +19,7 @@ public class MqttSinkConnector extends SinkConnector {
 
     private Map<String, String> configProps;
     private String name;
+    private Thread pushMetricsThread;
 
     @Override
     public Class<? extends Task> taskClass() {
@@ -38,13 +41,29 @@ public class MqttSinkConnector extends SinkConnector {
     public void start(Map<String, String> props) {
         configProps = props;
         name = props.get(PROPS_CONNECTOR_NAME);
+        initMetrics();
         log.info("Starting MqttSinkConnector with name: {}", name);
+    }
+
+    private void initMetrics() {
+        try {
+            String gatewayUrl = System.getenv(PUSH_GATE_WAY_ENV);
+            pushMetricsThread = new Thread(new FlushGatewayThread(new PushGateway(gatewayUrl)));
+            pushMetricsThread.start();
+        } catch (Exception e) {
+            log.error("init metrics gateway error: {}", e.getMessage());
+        }
     }
 
 
     @Override
     public void stop() {
-        log.info("MqttSinkConnector {} stopped ...", name);
+        try {
+            pushMetricsThread.interrupt();
+            log.info("MqttSinkConnector {} stopped ...", name);
+        } catch (Exception e) {
+            log.error("stop push gateway error: {}", e.getMessage());
+        }
     }
 
     @Override

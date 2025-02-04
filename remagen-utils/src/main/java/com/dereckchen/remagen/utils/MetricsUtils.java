@@ -1,8 +1,15 @@
 package com.dereckchen.remagen.utils;
 
+import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
+import io.prometheus.client.exporter.PushGateway;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+
+import static com.dereckchen.remagen.consts.ConnectorConst.*;
 
 /**
  * Utility class for Prometheus metrics.
@@ -61,6 +68,25 @@ public class MetricsUtils {
      */
     public static void observeRequestLatency(Histogram histogram, double latency, String... labels) {
         histogram.labels(labels).observe(latency);
+    }
+
+    @Slf4j
+    @AllArgsConstructor
+    public static class FlushGatewayThread implements Runnable {
+
+        PushGateway pushGateway;
+
+        @Override
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    pushGateway.push(CollectorRegistry.defaultRegistry, SINK_TASK_METRICS);
+                    Thread.sleep(PUSH_GATE_WAY_INTERVAL);
+                } catch (Exception e) {
+                    log.error("pushGateway Exception", e);
+                }
+            }
+        }
     }
 
 
