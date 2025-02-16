@@ -3,6 +3,7 @@ package com.dereckchen.remagen.kafka.connector.sink;
 
 import com.dereckchen.remagen.exceptions.PanicException;
 import com.dereckchen.remagen.exceptions.RetryableException;
+import com.dereckchen.remagen.models.BridgeMessage;
 import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.models.MQTTConfig;
 import com.dereckchen.remagen.utils.JsonUtils;
@@ -167,8 +168,10 @@ public class MqttSinkTask extends SinkTask {
         for (SinkRecord record : records) {
             try {
                 // Retrieve the value of the record, which will be converted to a JSON byte array and encapsulated into an MQTT message
-                Object obj = record.value();
-                MqttMessage mqttMessage = new MqttMessage(JsonUtils.toJsonBytes(obj));
+                String obj = (String) record.value();
+                BridgeMessage bridgeMessage = JsonUtils.fromJson(obj, BridgeMessage.class);
+                MqttMessage mqttMessage = bridgeMessage.transferToMqttMessage();
+
                 // if we didn't init mqtt client, init it
                 if (mqttClient == null) {
                     initMqttClient();

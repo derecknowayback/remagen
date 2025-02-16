@@ -16,10 +16,7 @@ public class BridgeMessage {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     // copy from MqttMessage
-    @JsonIgnore
     private int qos = 1;
-
-    @JsonIgnore
     private boolean retained = false;
 
     // set by user

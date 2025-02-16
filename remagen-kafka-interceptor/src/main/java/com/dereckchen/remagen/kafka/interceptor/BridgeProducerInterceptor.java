@@ -1,10 +1,13 @@
 package com.dereckchen.remagen.kafka.interceptor;
 
 import com.dereckchen.remagen.kakfa.restful.client.KafkaConnectManager;
+import com.dereckchen.remagen.models.BridgeMessage;
 import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.models.ConnectorInfoV2;
+import com.dereckchen.remagen.models.IBridgeMessageContent;
 import com.dereckchen.remagen.utils.ConnectorUtils;
 import com.dereckchen.remagen.utils.JsonUtils;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
@@ -17,12 +20,11 @@ import java.util.Map;
 
 import static com.dereckchen.remagen.consts.ConnectorConst.INTERCEPTOR_PROP_HOST;
 import static com.dereckchen.remagen.consts.ConnectorConst.INTERCEPTOR_PROP_PORT;
-import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_BRIDGE_OPTION_KEY;
-import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY;
+import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.*;
 
 @Data
 @Slf4j
-public class BridgeProducerInterceptor implements ProducerInterceptor<String, String> {
+public class BridgeProducerInterceptor implements ProducerInterceptor<String,String> {
 
 
     private KafkaConnectManager kafkaConnectManager;
@@ -48,7 +50,7 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
      * @return The processed record.
      */
     @Override
-    public ProducerRecord<String, String> onSend(ProducerRecord<String, String> producerRecord) {
+    public ProducerRecord<String,String> onSend(ProducerRecord<String,String> producerRecord) {
         // Get the headers of the record
         Headers headers = producerRecord.headers();
         // Check if the record needs to be bridged
@@ -81,8 +83,9 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
             kafkaConnectManager.createConnector(connectorName, bridgeOption.getProps());
         }
 
-        // Return the processed record
-        return producerRecord;
+        BridgeMessage bridgeMessage = new BridgeMessage(new KafkaBridgeMsg(producerRecord), 1, false);
+        return new ProducerRecord<>(topic, producerRecord.partition(), producerRecord.timestamp(),
+                producerRecord.key(), JsonUtils.toJsonString(bridgeMessage), producerRecord.headers());
     }
 
 
@@ -128,7 +131,6 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
         return JsonUtils.fromJson(header.value(), BridgeOption.class);
     }
 
-
     @Override
     public void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {
         if (e != null) {
@@ -140,5 +142,28 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String, St
     public void close() {
         // do nothing
         log.info("KafkaInterceptor close...");
+    }
+
+
+    @AllArgsConstructor
+    private static class KafkaBridgeMsg implements IBridgeMessageContent {
+
+        ProducerRecord<String,String> producerRecord;
+
+        @Override
+        public String serializeToJsonStr() {
+            return producerRecord.value();
+        }
+
+        @Override
+        public String getMessageId() {
+            Headers headers = producerRecord.headers();
+            Header header = headers.lastHeader(KAFKA_HEADER_MESSAGE_ID);
+            if (header == null || header.value() == null) {
+                log.warn("KafkaInterceptor getMessageId error. record: {}", producerRecord);
+                return null;
+            }
+            return new String(header.value());
+        }
     }
 }
