@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Slf4j
-public class KafkaBridgeConsumer<K, V> extends KafkaConsumer<K, V> {
+public class KafkaBridgeConsumer extends KafkaConsumer<String, String> {
 
 
     private KafkaConnectManager connectManager;
@@ -42,21 +42,21 @@ public class KafkaBridgeConsumer<K, V> extends KafkaConsumer<K, V> {
     }
 
 
-    public KafkaBridgeConsumer(Properties properties, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+    public KafkaBridgeConsumer(Properties properties, Deserializer<String> keyDeserializer, Deserializer<String> valueDeserializer) {
         super(properties, keyDeserializer, valueDeserializer);
     }
 
-    public KafkaBridgeConsumer(Properties properties, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, String host, String port, boolean needHttps) {
+    public KafkaBridgeConsumer(Properties properties, Deserializer<String> keyDeserializer, Deserializer<String> valueDeserializer, String host, String port, boolean needHttps) {
         super(properties, keyDeserializer, valueDeserializer);
         connectManager = new KafkaConnectManager(host, port, needHttps);
     }
 
 
-    public KafkaBridgeConsumer(Map<String, Object> configs, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {
+    public KafkaBridgeConsumer(Map<String, Object> configs, Deserializer<String> keyDeserializer, Deserializer<String> valueDeserializer) {
         super(configs, keyDeserializer, valueDeserializer);
     }
 
-    public KafkaBridgeConsumer(Map<String, Object> configs, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, String host, String port, boolean needHttps) {
+    public KafkaBridgeConsumer(Map<String, Object> configs, Deserializer<String> keyDeserializer, Deserializer<String> valueDeserializer, String host, String port, boolean needHttps) {
         super(configs, keyDeserializer, valueDeserializer);
         connectManager = new KafkaConnectManager(host, port, needHttps);
     }
@@ -112,6 +112,4 @@ public class KafkaBridgeConsumer<K, V> extends KafkaConsumer<K, V> {
         }
         connectorNames.add(connectorName);
     }
-
-
 }

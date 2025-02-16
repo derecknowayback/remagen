@@ -36,7 +36,7 @@ public class KafkaSubscribe {
 
         // 创建消费者实例
         String host = "localhost", port = "38083";
-        KafkaBridgeConsumer<String, String> consumer = new KafkaBridgeConsumer<>(props, host, port, false);
+        KafkaBridgeConsumer consumer = new KafkaBridgeConsumer(props, host, port, false);
 
         // 订阅主题
         BridgeOption bridgeOption = new BridgeOption();

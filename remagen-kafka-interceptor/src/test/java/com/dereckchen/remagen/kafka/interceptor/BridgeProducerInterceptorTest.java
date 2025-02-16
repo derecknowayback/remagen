@@ -20,64 +20,6 @@ public class BridgeProducerInterceptorTest {
     }
 
     @Test
-    public void isRecordNeedBridge_HeadersIsNull_ReturnsFalse() {
-        assertFalse(interceptor.isRecordNeedBridge(null));
-    }
-
-    @Test
-    public void isRecordNeedBridge_HeaderIsNull_ReturnsFalse() {
-        Headers headers = new RecordHeaders();
-        assertFalse(interceptor.isRecordNeedBridge(headers));
-    }
-
-    @Test
-    public void isRecordNeedBridge_HeaderValueIsTrue_ReturnsTrue() {
-        Headers headers = new RecordHeaders();
-        headers.add(KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY, "true".getBytes());
-        assertTrue(interceptor.isRecordNeedBridge(headers));
-    }
-
-    @Test
-    public void isRecordNeedBridge_HeaderValueIsFalse_ReturnsFalse() {
-        Headers headers = new RecordHeaders();
-        headers.add(KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY, "false".getBytes());
-        assertFalse(interceptor.isRecordNeedBridge(headers));
-    }
-
-    @Test
-    public void isRecordNeedBridge_HeaderValueIsNonBoolean_ReturnsFalse() {
-        Headers headers = new RecordHeaders();
-        headers.add(KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY, "notABoolean".getBytes());
-        assertFalse(interceptor.isRecordNeedBridge(headers));
-    }
-
-
-    @Test
-    public void isRecordNeedBridge_HeadersNull_ReturnsFalse() {
-        assertFalse(interceptor.isRecordNeedBridge(null));
-    }
-
-    @Test
-    public void isRecordNeedBridge_HeaderNotPresent_ReturnsFalse() {
-        Headers headers = new RecordHeaders();
-        assertFalse(interceptor.isRecordNeedBridge(headers));
-    }
-
-    @Test
-    public void isRecordNeedBridge_HeaderPresentTrue_ReturnsTrue() {
-        Headers headers = new RecordHeaders();
-        headers.add(KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY, "true".getBytes());
-        assertTrue(interceptor.isRecordNeedBridge(headers));
-    }
-
-    @Test
-    public void isRecordNeedBridge_HeaderPresentFalse_ReturnsFalse() {
-        Headers headers = new RecordHeaders();
-        headers.add(KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY, "false".getBytes());
-        assertFalse(interceptor.isRecordNeedBridge(headers));
-    }
-
-    @Test
     public void getBridgeOption_HeadersNull_ReturnsNull() {
         assertNull(interceptor.getBridgeOption(null));
     }

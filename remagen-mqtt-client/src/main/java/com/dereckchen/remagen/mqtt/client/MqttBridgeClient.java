@@ -6,11 +6,13 @@ import com.dereckchen.remagen.models.BridgeOption;
 import com.dereckchen.remagen.models.ConnectorInfoV2;
 import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.ConnectorUtils;
+import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,6 +53,33 @@ public class MqttBridgeClient extends MqttClient {
         super(serverURI, clientId, persistence, executorService);
         this.kafkaConnectManager = new KafkaConnectManager(option.getHost(), option.getPort(), option.isNeedHttps());
     }
+
+    @Override
+    public void setCallback(MqttCallback callback) {
+        MqttCallback extended = new MqttCallback(){
+
+            @Override
+            public void connectionLost(Throwable cause) {
+                callback.connectionLost(cause);
+            }
+
+            @Override
+            public void messageArrived(String topic, MqttMessage message) throws Exception {
+                BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
+                bridgeMessage.setMqttEndTime(LocalDateTime.now());
+                // todo metrics
+                callback.messageArrived(topic, message);
+            }
+
+            @Override
+            public void deliveryComplete(IMqttDeliveryToken token) {
+
+            }
+        };
+        super.setCallback(extended);
+    }
+
+
 
     /**
      * Subscribes to a list of MQTT topics and creates Kafka connectors for them.

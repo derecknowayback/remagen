@@ -1,13 +1,12 @@
 package com.dereckchen.remagen.utils;
 
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.Counter;
-import io.prometheus.client.Gauge;
-import io.prometheus.client.Histogram;
+import io.prometheus.client.*;
 import io.prometheus.client.exporter.PushGateway;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static com.dereckchen.remagen.consts.ConnectorConst.*;
 
@@ -16,26 +15,44 @@ import static com.dereckchen.remagen.consts.ConnectorConst.*;
  */
 public class MetricsUtils {
 
+    private static final ConcurrentMap<String, Counter> counterMap = new ConcurrentHashMap<>(8);
+    private static final ConcurrentMap<String, Histogram> histogramMap = new ConcurrentHashMap<>(8);
+    private static final ConcurrentMap<String, Gauge> gaugeMap = new ConcurrentHashMap<>(8);
+
     public static Counter getCounter(String name, String... labelNames) {
-        return Counter.build()
+        if (counterMap.containsKey(name)) {
+            return counterMap.get(name);
+        }
+        Counter counter = Counter.build()
                 .name(name)
                 .help(name)
-                .labelNames(labelNames)
-                .register();
+                .labelNames(labelNames).register();
+        counterMap.put(name, counter);
+        return counter;
     }
 
 
     public static Gauge getGauge(String name, String... labelNames) {
-        return Gauge.build().name(name).help(name).labelNames(labelNames).register();
+        if (gaugeMap.containsKey(name)) {
+            return gaugeMap.get(name);
+        }
+        Gauge gauge = Gauge.build().name(name).help(name).labelNames(labelNames).register();
+        gaugeMap.put(name, gauge);
+        return gauge;
     }
 
 
     public static Histogram getHistogram(String name, String... labelNames) {
-        return Histogram.build()
+        if (histogramMap.containsKey(name)) {
+            return histogramMap.get(name);
+        }
+        Histogram histogram = Histogram.build()
                 .name(name)
                 .help(name)
                 .labelNames(labelNames)
                 .register();
+        histogramMap.put(name, histogram);
+        return histogram;
     }
 
     /**

@@ -11,16 +11,18 @@ import com.dereckchen.remagen.utils.KafkaUtils;
 import com.dereckchen.remagen.utils.MQTTUtils;
 import com.dereckchen.remagen.utils.MetricsUtils;
 import io.prometheus.client.Counter;
+import io.prometheus.client.Histogram;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -37,10 +39,14 @@ public class MqttSinkTask extends SinkTask {
 
     private Counter sinkTaskMsgCounter;
     private Counter sinkTaskErrCounter;
+    private Histogram kafkaPub2ArriveSinkLatency;
+    private Histogram sinkInnerLatency;
 
     private void initMetrics() {
         sinkTaskErrCounter = MetricsUtils.getCounter("sink_task_err_counter", "name", "method", "host");
         sinkTaskMsgCounter = MetricsUtils.getCounter("sink_task_msg_counter", "host");
+        kafkaPub2ArriveSinkLatency = MetricsUtils.getHistogram("kafka_pub2arrive_sink_latency", "host");
+        sinkInnerLatency = MetricsUtils.getHistogram("sink_inner_latency", "host");
     }
 
     @Override
@@ -101,6 +107,7 @@ public class MqttSinkTask extends SinkTask {
      */
     @Override
     public void put(Collection<SinkRecord> records) {
+        LocalDateTime arriveTime = LocalDateTime.now();
         // if it is not running, do nothing, just return
         if (!isRunning()) {
             log.warn("SinkTask is not running...");
@@ -115,16 +122,48 @@ public class MqttSinkTask extends SinkTask {
             return;
         }
 
+        List<BridgeMessage> messages = new ArrayList<>(records.size());
+        for (SinkRecord record : records) {
+            String obj = (String) record.value();
+            BridgeMessage bridgeMessage = JsonUtils.fromJson(obj, BridgeMessage.class);
+            bridgeMessage.setArriveAtSink(arriveTime);
+            if (bridgeMessage.getKafkaPubTime() != null) {
+                Duration duration = Duration.between(bridgeMessage.getKafkaPubTime(), arriveTime);
+                long milliseconds = duration.toMillis();
+                MetricsUtils.observeRequestLatency(kafkaPub2ArriveSinkLatency,milliseconds,getLocalIp());
+            }
+
+            messages.add(bridgeMessage);
+        }
+
         // Monitor the records
         monitorRecords(records);
 
         // Send the records to MQTT
         try {
-            sendMQTT(records);
+            ensureMqttClient();
+            for (BridgeMessage bridgeMessage : messages) {
+                LocalDateTime sendTime = LocalDateTime.now();
+                bridgeMessage.setPubFromSink(sendTime);
+                MetricsUtils.observeRequestLatency(sinkInnerLatency, Duration.between(arriveTime, sendTime).toMillis(), getLocalIp());
+                MqttMessage mqttMessage = bridgeMessage.transferToMqttMessage();
+                mqttClient.publish(mqttConfig.getTopic(), mqttMessage);
+            }
         } catch (Exception e) {
             log.error("Send mqtt message error, records: {}", records, e);
             MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-send-failed", "put", getLocalIp());
             throw new RuntimeException(e);
+        }
+    }
+
+    void ensureMqttClient() throws PanicException {
+        // if we didn't init mqtt client, init it
+        if (mqttClient == null) {
+            initMqttClient();
+        }
+        if (!mqttClient.isConnected()) {
+            // if mqtt client is not connected, try reconnect
+            MQTTUtils.tryReconnect(running::get, mqttClient, mqttConnectOptions, mqttConfig);
         }
     }
 
@@ -156,38 +195,6 @@ public class MqttSinkTask extends SinkTask {
         MetricsUtils.incrementCounter(sinkTaskMsgCounter, recordsCount, getLocalIp());
     }
 
-
-    /**
-     * Send a collection of records via MQTT
-     * This method iterates through each SinkRecord in the collection, converts it to a JSON byte array, and sends it via MQTT
-     * If the MQTT client has not been initialized, it will be initialized; if the client is disconnected, it will attempt to reconnect
-     *
-     * @param records A collection of SinkRecord objects, representing the records to be sent via MQTT
-     */
-    public void sendMQTT(Collection<SinkRecord> records) throws PanicException {
-        for (SinkRecord record : records) {
-            try {
-                // Retrieve the value of the record, which will be converted to a JSON byte array and encapsulated into an MQTT message
-                String obj = (String) record.value();
-                BridgeMessage bridgeMessage = JsonUtils.fromJson(obj, BridgeMessage.class);
-                MqttMessage mqttMessage = bridgeMessage.transferToMqttMessage();
-
-                // if we didn't init mqtt client, init it
-                if (mqttClient == null) {
-                    initMqttClient();
-                }
-                if (!mqttClient.isConnected()) {
-                    // if mqtt client is not connected, try reconnect
-                    MQTTUtils.tryReconnect(running::get, mqttClient, mqttConnectOptions, mqttConfig);
-                }
-                mqttClient.publish(mqttConfig.getTopic(), mqttMessage);
-            } catch (MqttException e) {
-                log.error("Send mqtt message error, record:{}", record, e);
-                MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-send-failed", "sendMQTT", getLocalIp());
-                throw new RetryableException(e);
-            }
-        }
-    }
 
     /**
      * Initializes the MQTT client.

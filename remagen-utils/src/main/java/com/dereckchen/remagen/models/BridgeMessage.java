@@ -1,7 +1,6 @@
 package com.dereckchen.remagen.models;
 
 import com.dereckchen.remagen.utils.JsonUtils;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -23,6 +22,15 @@ public class BridgeMessage {
     private String id;
     private String content; // json format
     private String timestamp; // yyyy-MM-dd HH:mm:ss
+
+    private LocalDateTime kafkaPubTime;
+    private LocalDateTime arriveAtSink;
+    private LocalDateTime pubFromSink;
+    private LocalDateTime arriveAtSource;
+    private LocalDateTime pubFromSource;
+    private LocalDateTime mqttEndTime;
+    private LocalDateTime mqttPubTime;
+
 
     /**
      * Constructs a new BridgeMessage with the specified content, QoS, and retained flag.

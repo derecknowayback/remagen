@@ -13,6 +13,7 @@ import com.dereckchen.remagen.utils.MetricsUtils;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
+import io.prometheus.client.Histogram;
 import io.prometheus.client.exporter.PushGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -23,6 +24,7 @@ import org.eclipse.paho.client.mqttv3.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +43,7 @@ public class MqttSourceTask extends SourceTask {
     private ArrayDeque<SourceRecord> records;
     private ReentrantLock lock;
     private Map<SourceRecord, Pair<Integer, Integer>> mqttIdMap;
+    private Map<SourceRecord,LocalDateTime> arriveTimeMap;
     private AtomicBoolean running;
     private String latestTimeStamp;
     private String kafkaTopic;
@@ -49,11 +52,13 @@ public class MqttSourceTask extends SourceTask {
     private Counter sourceTaskMsgCounter;
     private Counter sourceTaskErrCounter;
     private Gauge sourceTaskLockStatus;
+    private Histogram sourceInnerLatency;
 
     private void initMetrics() {
         sourceTaskMsgCounter = MetricsUtils.getCounter("source_task_msg_counter", "host");
         sourceTaskErrCounter = MetricsUtils.getCounter("source_task_err_counter", "name", "method", "host");
         sourceTaskLockStatus = MetricsUtils.getGauge("source_task_lock_status", "host");
+        sourceInnerLatency = MetricsUtils.getHistogram("source_inner_latency", "host");
     }
 
     @Override
@@ -81,6 +86,7 @@ public class MqttSourceTask extends SourceTask {
         lock = new ReentrantLock(true);
         // Use ConcurrentHashMap for thread safety, allowing keys to be freely removed
         mqttIdMap = new ConcurrentHashMap<>();
+        arriveTimeMap = new ConcurrentHashMap<>();
         latestTimeStamp = "";
 
         // Get kafka topic
@@ -190,6 +196,7 @@ public class MqttSourceTask extends SourceTask {
             lock.lock();
             MetricsUtils.incrementGauge(sourceTaskLockStatus, getLocalIp());
             log.info("Returning {} records", records.size());
+
             // If the records list is empty, release the lock and return an empty list
             if (records.isEmpty()) {
                 return Collections.emptyList();
@@ -267,7 +274,11 @@ public class MqttSourceTask extends SourceTask {
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 log.debug("Received topic[{}] message: {} ", topic, message);
 
+                LocalDateTime now = LocalDateTime.now();
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
+                bridgeMessage.setArriveAtSource(now);
+                // todo metrics
+                if (bridgeMessage.get)
 
                 // Check if the received message is older than the latest timestamp.
                 if (bridgeMessage.getTimestamp().compareTo(latestTimeStamp) <= 0) {
@@ -281,12 +292,14 @@ public class MqttSourceTask extends SourceTask {
                 try {
                     lock.lock();
                     MetricsUtils.incrementGauge(sourceTaskLockStatus, getLocalIp());
+                    bridgeMessage.setPubFromSource(LocalDateTime.now());
                     SourceRecord sourceRecord = new SourceRecord(
                             KafkaUtils.getPartition(kafkaTopic, topic),
                             Collections.singletonMap(OFFSET_TIMESTAMP_KEY, bridgeMessage.getTimestamp()),
-                            kafkaTopic, null, bridgeMessage.getContent());
+                            kafkaTopic, null, JsonUtils.toJsonString(bridgeMessage));
                     records.add(sourceRecord);
                     mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
+                    arriveTimeMap.put(sourceRecord, now);
                 } finally {
                     lock.unlock();
                     MetricsUtils.decrementGauge(sourceTaskLockStatus, getLocalIp());
@@ -331,12 +344,16 @@ public class MqttSourceTask extends SourceTask {
         super.commitRecord(record, metadata);
         // Get the MQTT message ID and QoS level from the mqttIdMap using the record as a key
         Pair<Integer, Integer> idAndQos = mqttIdMap.get(record);
+        LocalDateTime arriveTime = arriveTimeMap.get(record);
         try {
             // Complete the message arrival process for the MQTT message with the given ID and QoS level
             client.messageArrivedComplete(idAndQos.getKey(), idAndQos.getValue());
             MetricsUtils.incrementCounter(sourceTaskMsgCounter, getLocalIp());
             log.debug("Ack mqtt message with id: {}", idAndQos.getKey());
             log.debug("Success send record: {}", record.value());
+            mqttIdMap.remove(record);
+            // todo metrics
+            arriveTimeMap.remove(record);
         } catch (MqttException e) {
             log.error("Ack mqtt message failed for record:{}, mqtt-msgId:{}", record, idAndQos.getKey(), e);
             MetricsUtils.incrementCounter(sourceTaskErrCounter, "mqtt-ack-failed", "commitRecord", getLocalIp());

@@ -117,7 +117,6 @@ public class MqttSinkTaskTest {
 
         // Assert
         verify(mqttSinkTask, never()).monitorRecords(any());
-        verify(mqttSinkTask, never()).sendMQTT(any());
     }
 
     @Test
@@ -128,50 +127,6 @@ public class MqttSinkTaskTest {
 
         // Assert
         verify(mqttSinkTask, never()).monitorRecords(any());
-        verify(mqttSinkTask, never()).sendMQTT(any());
-    }
-
-    @Test
-    public void sendMQTT_MqttClientNotInitialized_InitializesAndPublishes() throws Exception {
-        when(sinkRecord.value()).thenReturn(new Object());
-        when(JsonUtils.toJsonBytes(any())).thenReturn(new byte[]{});
-        when(mqttClient.isConnected()).thenReturn(true);
-        doThrow(MqttException.class).when(mqttClient).publish(anyString(), any());
-
-        assertThrows(RetryableException.class, () -> mqttSinkTask.sendMQTT(Collections.singletonList(sinkRecord)));
-        verify(mqttClient, times(1)).publish(any(), any());
-    }
-
-    @Test
-    public void sendMQTT_MqttClientDisconnected_TriesToReconnect() throws Exception {
-        when(sinkRecord.value()).thenReturn(new Object());
-        when(JsonUtils.toJsonBytes(any())).thenReturn(new byte[]{});
-        when(mqttClient.isConnected()).thenReturn(false);
-
-        PowerMockito.when(MQTTUtils.getMqttClient(any(MQTTConfig.class))).thenReturn(mqttClient);
-        PowerMockito.when(MQTTUtils.defaultOptions(any(MQTTConfig.class))).thenReturn(new MqttConnectOptions());
-        PowerMockito.doNothing().when(MQTTUtils.class, "tryReconnect", any(), any(), any(), any());
-
-        doNothing().when(mqttClient).connect(any(MqttConnectOptions.class));
-        doNothing().when(mqttClient).publish(anyString(), any(MqttMessage.class));
-
-        mqttSinkTask.sendMQTT(Collections.singletonList(sinkRecord));
-
-
-        verify(mqttClient).publish(anyString(), any(MqttMessage.class));
-        verify(mqttClient, times(1)).connect(any(MqttConnectOptions.class));
-    }
-
-    @Test
-    public void sendMQTT_MqttExceptionThrown_ThrowsRetryableException() throws Exception {
-        when(sinkRecord.value()).thenReturn(new Object());
-        when(JsonUtils.toJsonBytes(any())).thenReturn(new byte[]{});
-        when(mqttClient.isConnected()).thenReturn(true);
-        PowerMockito.when(MQTTUtils.getMqttClient(any(MQTTConfig.class))).thenReturn(mqttClient);
-        PowerMockito.when(MQTTUtils.defaultOptions(any(MQTTConfig.class))).thenReturn(new MqttConnectOptions());
-        doThrow(new MqttException(0)).when(mqttClient).publish(anyString(), any(MqttMessage.class));
-
-        assertThrows(RetryableException.class, () -> mqttSinkTask.sendMQTT(Collections.singletonList(sinkRecord)));
     }
 
 
