@@ -1,16 +1,12 @@
 package com.dereckchen.remagen.demo;
 
 
-import com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst;
+import com.dereckchen.remagen.kafka.interceptor.KafkaBridgeProducer;
 import com.dereckchen.remagen.models.BridgeOption;
-import com.dereckchen.remagen.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
-import org.apache.kafka.common.header.Headers;
 
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +45,7 @@ public class KafkaSend {
 
 
         // 创建生产者实例
-        Producer<String, String> producer = new KafkaProducer<>(props);
+        KafkaBridgeProducer<String, String> producer = new KafkaBridgeProducer<>(props);
 
 
         List<PartitionInfo> partitionInfos = producer.partitionsFor(topic);
@@ -65,22 +61,15 @@ public class KafkaSend {
         // 发送消息
         for (int i = 0; i < 100000; i++) {
             ProducerRecord<String, String> record = new ProducerRecord<>(topic, key + Math.random(), value);
-
             BridgeOption option = new BridgeOption(mqttTopic, topic, getProps(topic, mqttTopic));
-
-            Headers headers = record.headers();
-            headers.add(KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY, "true".getBytes());
-            headers.add(KafkaInterceptorConst.KAFKA_HEADER_BRIDGE_OPTION_KEY, JsonUtils.toJsonBytes(option));
-
-
             int finalI = i;
-            producer.send(record, (metadata, exception) -> {
+            producer.send(record, "1"+Math.random(),(metadata, exception) -> {
                 if (exception == null) {
                     log.info("Message {} sent successfully: {}", finalI, metadata.toString());
                 } else {
                     log.error("Error {} sending message: {}", finalI, exception.getMessage());
                 }
-            });
+            },option);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {

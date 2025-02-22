@@ -77,7 +77,7 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String,Str
         // Get the connector from the Kafka Connect manager
         ConnectorInfoV2 connector = kafkaConnectManager.getConnector(connectorName);
         // If the connector does not exist
-        if (connector == null || connector.getErrorCode() != null) {
+        if (connector.getErrorCode() != null) {
             // Log a warning
             log.warn("connector:{} not exist", connectorName);
             // Create the connector with the properties from the BridgeOption

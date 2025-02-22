@@ -272,13 +272,15 @@ public class MqttSourceTask extends SourceTask {
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 log.debug("Received topic[{}] message: {} ", topic, message);
-
+                
                 LocalDateTime now = LocalDateTime.now();
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
                 bridgeMessage.setArriveAtSource(now);
 
                 if (bridgeMessage.getMqttPubTime() != null) {
                     MetricsUtils.observeRequestLatency(arriveSourceLatency, Duration.between(bridgeMessage.getMqttPubTime(), now).toMillis(), getLocalIp());
+                } else if (bridgeMessage.getPubFromSink() != null) {
+                    MetricsUtils.observeRequestLatency(arriveSourceLatency, Duration.between(bridgeMessage.getPubFromSink(), now).toMillis(), getLocalIp());
                 }
 
                 // Check if the received message is older than the latest timestamp.
@@ -287,8 +289,7 @@ public class MqttSourceTask extends SourceTask {
                     log.warn("Ignore old message. ts:{}  lastTimeStamp:{}", bridgeMessage.getTimestamp(), latestTimeStamp);
                     return; // ignore old messages
                 }
-
-
+                
                 // Create a new Kafka source record from the received MQTT message and add it to the records list.
                 SourceRecord sourceRecord;
                 try {

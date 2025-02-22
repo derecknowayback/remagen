@@ -129,6 +129,10 @@ public class MqttSinkTask extends SinkTask {
                 Duration duration = Duration.between(bridgeMessage.getKafkaPubTime(), arriveTime);
                 long milliseconds = duration.toMillis();
                 MetricsUtils.observeRequestLatency(arriveAtSinkLatency,milliseconds,getLocalIp());
+            } else if (bridgeMessage.getPubFromSource() != null) {
+                Duration duration = Duration.between(bridgeMessage.getPubFromSource(), arriveTime);
+                long milliseconds = duration.toMillis();
+                MetricsUtils.observeRequestLatency(arriveAtSinkLatency,milliseconds,getLocalIp());
             }
 
             messages.add(bridgeMessage);

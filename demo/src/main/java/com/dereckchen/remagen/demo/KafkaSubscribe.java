@@ -18,8 +18,8 @@ public class KafkaSubscribe {
         // Kafka broker地址
         String bootstrapServers = "localhost:39092,localhost:39093,localhost:39094";
         // 主题名称
-        String topic = "new_top";
-        String mqttTopic = "mqtt_topic_test12";
+        String topic = "syn_topic";
+        String mqttTopic = "test_mqtt";
         // 消费者组ID
         String groupId = "my-group";
 
@@ -71,7 +71,7 @@ public class KafkaSubscribe {
         props.put("mqtt.broker", "tcp://emqx:1883");
         props.put("mqtt.username", "admin");
         props.put("mqtt.password", "public");
-        props.put("mqtt.clientid", "client-i783e3d-1234");
+        props.put("mqtt.clientid", "client-i783e3d-12345");
         props.put("key.converter", "org.apache.kafka.connect.storage.StringConverter");
         props.put("value.converter", "org.apache.kafka.connect.storage.StringConverter");
         return props;

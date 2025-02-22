@@ -15,9 +15,9 @@ public class MqttSend {
 
     public static void main(String[] args) throws Exception {
         String serverURI = "tcp://localhost:1883";
-        String clientId = "cccmqtt-source-demo" + Math.random();
+        String clientId = "cccmqtt-1" + Math.random();
         String mqtt_topic = "mqtt_test_cjp1";
-        String kafka_topic = "new_topic_1";
+        String kafka_topic = "sync_topic";
 
         KafkaServerConfig kafkaServerConfig = KafkaServerConfig.builder().host("127.0.0.1").port("38083").needHttps(false).build();
 
@@ -42,7 +42,7 @@ public class MqttSend {
 
                 @Override
                 public String getMessageId() {
-                    return "1";
+                    return "1" + Math.random() + Math.random();
                 }
             }, 0, true);
             mqttBridgeClient.publish(mqtt_topic, msg, bridgeOption);

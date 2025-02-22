@@ -15,7 +15,7 @@ public class MqttSubscribe {
         String serverURI = "tcp://localhost:1883";
         String clientId = "cccmqtt-source-demo" + Math.random();
         String mqtt_topic = "test_mqtt";
-        String kafka_topic = "new_topic";
+        String kafka_topic = "sync_topic";
 
         KafkaServerConfig kafkaServerConfig = KafkaServerConfig.builder().host("127.0.0.1").port("38083").needHttps(false).build();
         MqttBridgeClient mqttBridgeClient = new MqttBridgeClient(serverURI, clientId, kafkaServerConfig);

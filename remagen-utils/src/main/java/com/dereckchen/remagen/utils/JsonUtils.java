@@ -3,6 +3,7 @@ package com.dereckchen.remagen.utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -13,6 +14,7 @@ public class JsonUtils {
     static {
         mapper = new ObjectMapper();
         mapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        mapper.registerModule(new JavaTimeModule());
     }
 
     public static String toJsonString(Object object) {

@@ -81,6 +81,11 @@
             <artifactId>simpleclient_pushgateway</artifactId>
             <version>0.16.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.16.2</version>
+        </dependency>
     </dependencies>
 
     <build>

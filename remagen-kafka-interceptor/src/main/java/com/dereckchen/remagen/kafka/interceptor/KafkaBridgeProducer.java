@@ -33,14 +33,17 @@ public class KafkaBridgeProducer <K,V> extends KafkaProducer<K,V> {
 
 
     public Future<RecordMetadata> send(ProducerRecord<K, V> record, BridgeOption bridgeOption) {
-        return send(record,null, bridgeOption);
+        return send(record,null,null, bridgeOption);
     }
 
 
-    public Future<RecordMetadata> send(ProducerRecord<K, V> record, Callback callback,BridgeOption bridgeOption) {
+    public Future<RecordMetadata> send(ProducerRecord<K, V> record, String msgId,Callback callback,BridgeOption bridgeOption) {
         Headers headers = record.headers();
         headers.add(KafkaInterceptorConst.KAFKA_HEADER_NEED_BRIDGE_KEY, "true".getBytes());
         headers.add(KafkaInterceptorConst.KAFKA_HEADER_BRIDGE_OPTION_KEY, JsonUtils.toJsonBytes(bridgeOption));
+        if (msgId != null) {
+            headers.add(KafkaInterceptorConst.KAFKA_HEADER_MESSAGE_ID, msgId.getBytes());
+        }
         return super.send(record, callback);
     }
 

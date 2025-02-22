@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import io.prometheus.client.Histogram;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.IntFunction;
 
 import static com.dereckchen.remagen.utils.MetricsUtils.getLocalIp;
 
@@ -71,21 +72,8 @@ public class MqttBridgeClient extends MqttClient {
 
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
-                BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
-                LocalDateTime now = LocalDateTime.now();
-                bridgeMessage.setMqttEndTime(now);
-                if (bridgeMessage.getPubFromSink() != null) {
-                    MetricsUtils.observeRequestLatency(arriveAtMqttClientHistogram,
-                            Duration.between(bridgeMessage.getArriveAtSource(), now).toMillis(), getLocalIp());
-                }
-                MqttMessage mqttMessage = new MqttMessage();
-                mqttMessage.setId(mqttMessage.getId());
-                if (bridgeMessage.getContent() != null) {
-                    mqttMessage.setPayload(bridgeMessage.getContent().getBytes());
-                }
-                mqttMessage.setQos(bridgeMessage.getQos());
-                mqttMessage.setRetained(bridgeMessage.isRetained());
-                callback.messageArrived(topic, message);
+                MqttMessage mqttMessage = rewriteMqttMessage(message);
+                callback.messageArrived(topic, mqttMessage);
             }
 
             @Override
@@ -94,6 +82,23 @@ public class MqttBridgeClient extends MqttClient {
         super.setCallback(extended);
     }
 
+    private MqttMessage rewriteMqttMessage(MqttMessage message) {
+        BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
+        LocalDateTime now = LocalDateTime.now();
+        bridgeMessage.setMqttEndTime(now);
+        if (bridgeMessage.getPubFromSink() != null) {
+            MetricsUtils.observeRequestLatency(arriveAtMqttClientHistogram,
+                    Duration.between(bridgeMessage.getArriveAtSource(), now).toMillis(), getLocalIp());
+        }
+        MqttMessage mqttMessage = new MqttMessage();
+        mqttMessage.setId(mqttMessage.getId());
+        if (bridgeMessage.getContent() != null) {
+            mqttMessage.setPayload(bridgeMessage.getContent().getBytes());
+        }
+        mqttMessage.setQos(bridgeMessage.getQos());
+        mqttMessage.setRetained(bridgeMessage.isRetained());
+        return mqttMessage;
+    }
 
 
     /**
@@ -127,6 +132,13 @@ public class MqttBridgeClient extends MqttClient {
         String[] topicFilters = Arrays.stream(bridgeOptions).map(BridgeOption::getMqttTopic).toArray(String[]::new);
 
         // Call the superclass's subscribe method to subscribe to the MQTT topics with the specified QoS levels and message listeners.
+        for (int i = 0; i < messageListeners.length; i++) {
+            IMqttMessageListener originListener = messageListeners[i];
+            messageListeners[i] = (topic, message) -> {
+                MqttMessage mqttMessage = rewriteMqttMessage(message);
+                originListener.messageArrived(topic, mqttMessage);
+            };
+        }
         super.subscribe(topicFilters, qos, messageListeners);
     }
 
@@ -156,12 +168,13 @@ public class MqttBridgeClient extends MqttClient {
         // Retrieve the connector information from the Kafka Connect Manager
         ConnectorInfoV2 connector = kafkaConnectManager.getConnector(connectorName);
         // If the connector does not exist
-        if (connector == null) {
+        if (connector.getErrorCode() != null) {
             log.warn("connector:{} not exist", connectorName);
             // Create a new Kafka connector with the generated connector name and the properties from the BridgeOption object
             connector = kafkaConnectManager.createConnector(connectorName, bridgeOption.getProps());
             if (connector.getErrorCode() != null) {
                 log.error("create connector error:{}", connector.getMessage());
+                throw new RuntimeException("create connector error:" + connector.getMessage());
             }
         }
 
