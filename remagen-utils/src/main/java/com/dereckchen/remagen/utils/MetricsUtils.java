@@ -5,6 +5,8 @@ import io.prometheus.client.exporter.PushGateway;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -13,6 +15,7 @@ import static com.dereckchen.remagen.consts.ConnectorConst.*;
 /**
  * Utility class for Prometheus metrics.
  */
+@Slf4j
 public class MetricsUtils {
 
     private static final ConcurrentMap<String, Counter> counterMap = new ConcurrentHashMap<>(8);
@@ -85,6 +88,16 @@ public class MetricsUtils {
      */
     public static void observeRequestLatency(Histogram histogram, double latency, String... labels) {
         histogram.labels(labels).observe(latency);
+    }
+
+    public static String getLocalIp() {
+        try {
+            InetAddress address = InetAddress.getLocalHost();
+            return address.getHostAddress();
+        } catch (UnknownHostException e) {
+            log.error("getLocalIp failed", e);
+            return  "127.0.0.1";
+        }
     }
 
     @Slf4j

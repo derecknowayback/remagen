@@ -7,15 +7,20 @@ import com.dereckchen.remagen.models.ConnectorInfoV2;
 import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.ConnectorUtils;
 import com.dereckchen.remagen.utils.JsonUtils;
+import com.dereckchen.remagen.utils.MetricsUtils;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.*;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import io.prometheus.client.Histogram;
 import java.util.concurrent.ScheduledExecutorService;
+
+import static com.dereckchen.remagen.utils.MetricsUtils.getLocalIp;
 
 
 @Getter
@@ -25,6 +30,7 @@ public class MqttBridgeClient extends MqttClient {
 
     private KafkaConnectManager kafkaConnectManager;
 
+    private Histogram arriveAtMqttClientHistogram = MetricsUtils.getHistogram("arriveAtMqttClientHistogram", "host");
 
     public MqttBridgeClient(String serverURI, String clientId) throws MqttException {
         super(serverURI, clientId);
@@ -66,15 +72,23 @@ public class MqttBridgeClient extends MqttClient {
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
-                bridgeMessage.setMqttEndTime(LocalDateTime.now());
-                // todo metrics
+                LocalDateTime now = LocalDateTime.now();
+                bridgeMessage.setMqttEndTime(now);
+                if (bridgeMessage.getPubFromSink() != null) {
+                    MetricsUtils.observeRequestLatency(arriveAtMqttClientHistogram, Duration.between(bridgeMessage.getArriveAtSource(), now).toMillis(), getLocalIp());
+                }
+                MqttMessage mqttMessage = new MqttMessage();
+                mqttMessage.setId(mqttMessage.getId());
+                if (bridgeMessage.getContent() != null) {
+                    mqttMessage.setPayload(bridgeMessage.getContent().getBytes());
+                }
+                mqttMessage.setQos(bridgeMessage.getQos());
+                mqttMessage.setRetained(bridgeMessage.isRetained());
                 callback.messageArrived(topic, message);
             }
 
             @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {
-
-            }
+            public void deliveryComplete(IMqttDeliveryToken token) {}
         };
         super.setCallback(extended);
     }

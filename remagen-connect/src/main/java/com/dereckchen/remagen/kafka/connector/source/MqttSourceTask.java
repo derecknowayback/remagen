@@ -10,11 +10,9 @@ import com.dereckchen.remagen.utils.JsonUtils;
 import com.dereckchen.remagen.utils.KafkaUtils;
 import com.dereckchen.remagen.utils.MQTTUtils;
 import com.dereckchen.remagen.utils.MetricsUtils;
-import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
-import io.prometheus.client.exporter.PushGateway;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -24,6 +22,7 @@ import org.eclipse.paho.client.mqttv3.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,6 +34,7 @@ import static com.dereckchen.remagen.utils.ConnectorUtils.parseConfig;
 import static com.dereckchen.remagen.utils.KafkaUtils.getPartition;
 import static com.dereckchen.remagen.utils.MQTTUtils.defaultOptions;
 import static com.dereckchen.remagen.utils.MQTTUtils.tryReconnect;
+import static com.dereckchen.remagen.utils.MetricsUtils.getLocalIp;
 
 @Slf4j
 public class MqttSourceTask extends SourceTask {
@@ -47,17 +47,18 @@ public class MqttSourceTask extends SourceTask {
     private AtomicBoolean running;
     private String latestTimeStamp;
     private String kafkaTopic;
-    private String localIp;
 
     private Counter sourceTaskMsgCounter;
     private Counter sourceTaskErrCounter;
     private Gauge sourceTaskLockStatus;
+    private Histogram arriveSourceLatency;
     private Histogram sourceInnerLatency;
 
     private void initMetrics() {
         sourceTaskMsgCounter = MetricsUtils.getCounter("source_task_msg_counter", "host");
         sourceTaskErrCounter = MetricsUtils.getCounter("source_task_err_counter", "name", "method", "host");
         sourceTaskLockStatus = MetricsUtils.getGauge("source_task_lock_status", "host");
+        arriveSourceLatency = MetricsUtils.getHistogram("arrive_source_latency", "host");
         sourceInnerLatency = MetricsUtils.getHistogram("source_inner_latency", "host");
     }
 
@@ -277,8 +278,10 @@ public class MqttSourceTask extends SourceTask {
                 LocalDateTime now = LocalDateTime.now();
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
                 bridgeMessage.setArriveAtSource(now);
-                // todo metrics
-                if (bridgeMessage.get)
+
+                if (bridgeMessage.getMqttPubTime() != null) {
+                    MetricsUtils.observeRequestLatency(arriveSourceLatency, Duration.between(bridgeMessage.getMqttPubTime(), now).toMillis(), getLocalIp());
+                }
 
                 // Check if the received message is older than the latest timestamp.
                 if (bridgeMessage.getTimestamp().compareTo(latestTimeStamp) <= 0) {
@@ -352,7 +355,7 @@ public class MqttSourceTask extends SourceTask {
             log.debug("Ack mqtt message with id: {}", idAndQos.getKey());
             log.debug("Success send record: {}", record.value());
             mqttIdMap.remove(record);
-            // todo metrics
+            MetricsUtils.observeRequestLatency(sourceInnerLatency, Duration.between(arriveTime, LocalDateTime.now()).toMillis(), getLocalIp());
             arriveTimeMap.remove(record);
         } catch (MqttException e) {
             log.error("Ack mqtt message failed for record:{}, mqtt-msgId:{}", record, idAndQos.getKey(), e);
@@ -361,21 +364,6 @@ public class MqttSourceTask extends SourceTask {
             throw new RetryableException("Ack mqtt message failed for record:%s, mqtt-msgId:%s",
                     record.toString(), String.valueOf(idAndQos.getKey()));
         }
-    }
-
-
-    // 获取本机ip
-    private String getLocalIp() {
-        if (localIp == null || localIp.isEmpty()) {
-            try {
-                InetAddress address = InetAddress.getLocalHost();
-                localIp = address.getHostAddress();
-            } catch (UnknownHostException e) {
-                log.error("getLocalIp failed", e);
-                localIp = "127.0.0.1";
-            }
-        }
-        return localIp;
     }
 
 

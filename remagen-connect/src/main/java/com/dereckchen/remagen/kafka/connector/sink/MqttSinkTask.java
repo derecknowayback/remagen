@@ -19,14 +19,13 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.dereckchen.remagen.consts.ConnectorConst.*;
+import static com.dereckchen.remagen.utils.MetricsUtils.getLocalIp;
 
 @Slf4j
 public class MqttSinkTask extends SinkTask {
@@ -35,7 +34,6 @@ public class MqttSinkTask extends SinkTask {
     private MqttConnectOptions mqttConnectOptions;
     private AtomicBoolean running = new AtomicBoolean(false);
     private Set<String> kafkaTopics;
-    private String localIp;
 
     private Counter sinkTaskMsgCounter;
     private Counter sinkTaskErrCounter;
@@ -243,18 +241,5 @@ public class MqttSinkTask extends SinkTask {
             MetricsUtils.incrementCounter(sinkTaskErrCounter, "mqtt-close-failed", "stop", getLocalIp());
             throw new RuntimeException(e);
         }
-    }
-
-    private String getLocalIp() {
-        if (localIp == null || localIp.isEmpty()) {
-            try {
-                InetAddress address = InetAddress.getLocalHost();
-                localIp = address.getHostAddress();
-            } catch (UnknownHostException e) {
-                log.error("getLocalIp failed", e);
-                localIp = "127.0.0.1";
-            }
-        }
-        return localIp;
     }
 }
