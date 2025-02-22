@@ -30,7 +30,7 @@ public class MqttBridgeClient extends MqttClient {
 
     private KafkaConnectManager kafkaConnectManager;
 
-    private Histogram arriveAtMqttClientHistogram = MetricsUtils.getHistogram("arriveAtMqttClientHistogram", "host");
+    private Histogram arriveAtMqttClientHistogram = MetricsUtils.getHistogram("arrive_at_mqtt_client", "host");
 
     public MqttBridgeClient(String serverURI, String clientId) throws MqttException {
         super(serverURI, clientId);
@@ -75,7 +75,8 @@ public class MqttBridgeClient extends MqttClient {
                 LocalDateTime now = LocalDateTime.now();
                 bridgeMessage.setMqttEndTime(now);
                 if (bridgeMessage.getPubFromSink() != null) {
-                    MetricsUtils.observeRequestLatency(arriveAtMqttClientHistogram, Duration.between(bridgeMessage.getArriveAtSource(), now).toMillis(), getLocalIp());
+                    MetricsUtils.observeRequestLatency(arriveAtMqttClientHistogram,
+                            Duration.between(bridgeMessage.getArriveAtSource(), now).toMillis(), getLocalIp());
                 }
                 MqttMessage mqttMessage = new MqttMessage();
                 mqttMessage.setId(mqttMessage.getId());
@@ -147,6 +148,7 @@ public class MqttBridgeClient extends MqttClient {
         }
 
         // Convert the BridgeMessage to an MqttMessage
+        bridgeMessage.setMqttPubTime(LocalDateTime.now());
         MqttMessage message = bridgeMessage.transferToMqttMessage();
 
         // Generate a unique connector name based on the MQTT topic and Kafka topic

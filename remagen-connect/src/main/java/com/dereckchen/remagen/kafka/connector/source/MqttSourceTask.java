@@ -20,8 +20,6 @@ import org.apache.kafka.connect.source.SourceTask;
 import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.eclipse.paho.client.mqttv3.*;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -292,21 +290,22 @@ public class MqttSourceTask extends SourceTask {
 
 
                 // Create a new Kafka source record from the received MQTT message and add it to the records list.
+                SourceRecord sourceRecord;
                 try {
                     lock.lock();
                     MetricsUtils.incrementGauge(sourceTaskLockStatus, getLocalIp());
                     bridgeMessage.setPubFromSource(LocalDateTime.now());
-                    SourceRecord sourceRecord = new SourceRecord(
+                    sourceRecord = new SourceRecord(
                             KafkaUtils.getPartition(kafkaTopic, topic),
                             Collections.singletonMap(OFFSET_TIMESTAMP_KEY, bridgeMessage.getTimestamp()),
                             kafkaTopic, null, JsonUtils.toJsonString(bridgeMessage));
                     records.add(sourceRecord);
-                    mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
-                    arriveTimeMap.put(sourceRecord, now);
                 } finally {
                     lock.unlock();
                     MetricsUtils.decrementGauge(sourceTaskLockStatus, getLocalIp());
                 }
+                mqttIdMap.put(sourceRecord, new Pair<>(message.getId(), message.getQos()));
+                arriveTimeMap.put(sourceRecord, now);
             }
 
 

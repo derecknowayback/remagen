@@ -37,13 +37,13 @@ public class MqttSinkTask extends SinkTask {
 
     private Counter sinkTaskMsgCounter;
     private Counter sinkTaskErrCounter;
-    private Histogram kafkaPub2ArriveSinkLatency;
+    private Histogram arriveAtSinkLatency;
     private Histogram sinkInnerLatency;
 
     private void initMetrics() {
         sinkTaskErrCounter = MetricsUtils.getCounter("sink_task_err_counter", "name", "method", "host");
         sinkTaskMsgCounter = MetricsUtils.getCounter("sink_task_msg_counter", "host");
-        kafkaPub2ArriveSinkLatency = MetricsUtils.getHistogram("kafka_pub2arrive_sink_latency", "host");
+        arriveAtSinkLatency = MetricsUtils.getHistogram("arrive_at_sink_latency", "host");
         sinkInnerLatency = MetricsUtils.getHistogram("sink_inner_latency", "host");
     }
 
@@ -128,7 +128,7 @@ public class MqttSinkTask extends SinkTask {
             if (bridgeMessage.getKafkaPubTime() != null) {
                 Duration duration = Duration.between(bridgeMessage.getKafkaPubTime(), arriveTime);
                 long milliseconds = duration.toMillis();
-                MetricsUtils.observeRequestLatency(kafkaPub2ArriveSinkLatency,milliseconds,getLocalIp());
+                MetricsUtils.observeRequestLatency(arriveAtSinkLatency,milliseconds,getLocalIp());
             }
 
             messages.add(bridgeMessage);
