@@ -121,29 +121,29 @@ public class MqttSinkTask extends SinkTask {
             return;
         }
 
-        List<BridgeMessage> messages = new ArrayList<>(records.size());
-        for (SinkRecord record : records) {
-            String obj = (String) record.value();
-            BridgeMessage bridgeMessage = JsonUtils.fromJson(obj, BridgeMessage.class);
-            bridgeMessage.setArriveAtSink(arriveTime);
-            if (bridgeMessage.getKafkaPubTime() != null) {
-                Duration duration = Duration.between(bridgeMessage.getKafkaPubTime(), arriveTime);
-                long milliseconds = duration.toMillis();
-                MetricsUtils.observeRequestLatency(arriveAtSinkLatency, milliseconds, getLocalIp());
-            } else if (bridgeMessage.getPubFromSource() != null) {
-                Duration duration = Duration.between(bridgeMessage.getPubFromSource(), arriveTime);
-                long milliseconds = duration.toMillis();
-                MetricsUtils.observeRequestLatency(arriveAtSinkLatency, milliseconds, getLocalIp());
+        try {
+            List<BridgeMessage> messages = new ArrayList<>(records.size());
+            for (SinkRecord record : records) {
+                String obj = (String) record.value();
+                BridgeMessage bridgeMessage = JsonUtils.fromJson(obj, BridgeMessage.class);
+                bridgeMessage.setArriveAtSink(arriveTime);
+                if (bridgeMessage.getKafkaPubTime() != null) {
+                    Duration duration = Duration.between(bridgeMessage.getKafkaPubTime(), arriveTime);
+                    long milliseconds = duration.toMillis();
+                    MetricsUtils.observeRequestLatency(arriveAtSinkLatency, milliseconds, getLocalIp());
+                } else if (bridgeMessage.getPubFromSource() != null) {
+                    Duration duration = Duration.between(bridgeMessage.getPubFromSource(), arriveTime);
+                    long milliseconds = duration.toMillis();
+                    MetricsUtils.observeRequestLatency(arriveAtSinkLatency, milliseconds, getLocalIp());
+                }
+
+                messages.add(bridgeMessage);
             }
 
-            messages.add(bridgeMessage);
-        }
+            // Monitor the records
+            monitorRecords(records);
 
-        // Monitor the records
-        monitorRecords(records);
-
-        // Send the records to MQTT
-        try {
+            // Send the records to MQTT
             ensureMqttClient();
             for (BridgeMessage bridgeMessage : messages) {
                 LocalDateTime sendTime = LocalDateTime.now();
