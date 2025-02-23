@@ -41,7 +41,7 @@ public class MqttSourceTask extends SourceTask {
     private ArrayDeque<SourceRecord> records;
     private ReentrantLock lock;
     private Map<SourceRecord, Pair<Integer, Integer>> mqttIdMap;
-    private Map<SourceRecord,LocalDateTime> arriveTimeMap;
+    private Map<SourceRecord, LocalDateTime> arriveTimeMap;
     private AtomicBoolean running;
     private String latestTimeStamp;
     private String kafkaTopic;
@@ -272,7 +272,7 @@ public class MqttSourceTask extends SourceTask {
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 log.debug("Received topic[{}] message: {} ", topic, message);
-                
+
                 LocalDateTime now = LocalDateTime.now();
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
                 bridgeMessage.setArriveAtSource(now);
@@ -289,7 +289,7 @@ public class MqttSourceTask extends SourceTask {
                     log.warn("Ignore old message. ts:{}  lastTimeStamp:{}", bridgeMessage.getTimestamp(), latestTimeStamp);
                     return; // ignore old messages
                 }
-                
+
                 // Create a new Kafka source record from the received MQTT message and add it to the records list.
                 SourceRecord sourceRecord;
                 try {

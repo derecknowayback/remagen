@@ -8,6 +8,7 @@ import com.dereckchen.remagen.models.KafkaServerConfig;
 import com.dereckchen.remagen.utils.ConnectorUtils;
 import com.dereckchen.remagen.utils.JsonUtils;
 import com.dereckchen.remagen.utils.MetricsUtils;
+import io.prometheus.client.Histogram;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +16,10 @@ import org.eclipse.paho.client.mqttv3.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
-import io.prometheus.client.Histogram;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.IntFunction;
 
 import static com.dereckchen.remagen.utils.MetricsUtils.getLocalIp;
 
@@ -33,37 +33,44 @@ public class MqttBridgeClient extends MqttClient {
 
     private Histogram arriveAtMqttClientHistogram = MetricsUtils.getHistogram("arrive_at_mqtt_client", "host");
 
-    public MqttBridgeClient(String serverURI, String clientId) throws MqttException {
-        super(serverURI, clientId);
-    }
-
 
     public MqttBridgeClient(String serverURI, String clientId, KafkaServerConfig option) throws MqttException {
         super(serverURI, clientId);
         this.kafkaConnectManager = new KafkaConnectManager(option.getHost(), option.getPort(), option.isNeedHttps());
-    }
-
-    public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence) throws MqttException {
-        super(serverURI, clientId, persistence);
+        setCallback(nopCallBack());
     }
 
     public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence, KafkaServerConfig option) throws MqttException {
         super(serverURI, clientId, persistence);
         this.kafkaConnectManager = new KafkaConnectManager(option.getHost(), option.getPort(), option.isNeedHttps());
-    }
-
-    public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence, ScheduledExecutorService executorService) throws MqttException {
-        super(serverURI, clientId, persistence, executorService);
+        setCallback(nopCallBack());
     }
 
     public MqttBridgeClient(String serverURI, String clientId, MqttClientPersistence persistence, ScheduledExecutorService executorService, KafkaServerConfig option) throws MqttException {
         super(serverURI, clientId, persistence, executorService);
         this.kafkaConnectManager = new KafkaConnectManager(option.getHost(), option.getPort(), option.isNeedHttps());
+        setCallback(nopCallBack());
+    }
+
+    private static MqttCallback nopCallBack() {
+        return new MqttCallback() {
+            @Override
+            public void connectionLost(Throwable cause) {
+            }
+
+            @Override
+            public void messageArrived(String topic, MqttMessage message) throws Exception {
+            }
+
+            @Override
+            public void deliveryComplete(IMqttDeliveryToken token) {
+            }
+        };
     }
 
     @Override
     public void setCallback(MqttCallback callback) {
-        MqttCallback extended = new MqttCallback(){
+        MqttCallback extended = new MqttCallback() {
 
             @Override
             public void connectionLost(Throwable cause) {
@@ -77,18 +84,20 @@ public class MqttBridgeClient extends MqttClient {
             }
 
             @Override
-            public void deliveryComplete(IMqttDeliveryToken token) {}
+            public void deliveryComplete(IMqttDeliveryToken token) {
+            }
         };
         super.setCallback(extended);
     }
 
     private MqttMessage rewriteMqttMessage(MqttMessage message) {
         BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
         bridgeMessage.setMqttEndTime(now);
         if (bridgeMessage.getPubFromSink() != null) {
+            log.info("收到Sink消息,耗时:{}ms", Duration.between(bridgeMessage.getPubFromSink(), now).toMillis());
             MetricsUtils.observeRequestLatency(arriveAtMqttClientHistogram,
-                    Duration.between(bridgeMessage.getArriveAtSource(), now).toMillis(), getLocalIp());
+                    Duration.between(bridgeMessage.getPubFromSink(), now).toMillis(), getLocalIp());
         }
         MqttMessage mqttMessage = new MqttMessage();
         mqttMessage.setId(mqttMessage.getId());
@@ -132,12 +141,14 @@ public class MqttBridgeClient extends MqttClient {
         String[] topicFilters = Arrays.stream(bridgeOptions).map(BridgeOption::getMqttTopic).toArray(String[]::new);
 
         // Call the superclass's subscribe method to subscribe to the MQTT topics with the specified QoS levels and message listeners.
-        for (int i = 0; i < messageListeners.length; i++) {
-            IMqttMessageListener originListener = messageListeners[i];
-            messageListeners[i] = (topic, message) -> {
-                MqttMessage mqttMessage = rewriteMqttMessage(message);
-                originListener.messageArrived(topic, mqttMessage);
-            };
+        if (messageListeners != null) {
+            for (int i = 0; i < messageListeners.length; i++) {
+                IMqttMessageListener originListener = messageListeners[i];
+                messageListeners[i] = (topic, message) -> {
+                    MqttMessage mqttMessage = rewriteMqttMessage(message);
+                    originListener.messageArrived(topic, mqttMessage);
+                };
+            }
         }
         super.subscribe(topicFilters, qos, messageListeners);
     }
@@ -180,7 +191,6 @@ public class MqttBridgeClient extends MqttClient {
 
         // Call the superclass's publish method to publish the MQTT message
         super.publish(topic, message);
-        log.info("publish success");
     }
 
 

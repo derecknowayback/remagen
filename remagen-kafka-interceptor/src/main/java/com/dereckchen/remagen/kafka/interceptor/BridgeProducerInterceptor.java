@@ -21,11 +21,12 @@ import java.util.Map;
 
 import static com.dereckchen.remagen.consts.ConnectorConst.INTERCEPTOR_PROP_HOST;
 import static com.dereckchen.remagen.consts.ConnectorConst.INTERCEPTOR_PROP_PORT;
-import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.*;
+import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_BRIDGE_OPTION_KEY;
+import static com.dereckchen.remagen.kafka.consts.KafkaInterceptorConst.KAFKA_HEADER_MESSAGE_ID;
 
 @Data
 @Slf4j
-public class BridgeProducerInterceptor implements ProducerInterceptor<String,String> {
+public class BridgeProducerInterceptor implements ProducerInterceptor<String, String> {
 
 
     private KafkaConnectManager kafkaConnectManager;
@@ -51,7 +52,7 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String,Str
      * @return The processed record.
      */
     @Override
-    public ProducerRecord<String,String> onSend(ProducerRecord<String,String> producerRecord) {
+    public ProducerRecord<String, String> onSend(ProducerRecord<String, String> producerRecord) {
         // Get the headers of the record
         Headers headers = producerRecord.headers();
         // Check if the record needs to be bridged
@@ -87,8 +88,9 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String,Str
         BridgeMessage bridgeMessage = new BridgeMessage(new KafkaBridgeMsg(producerRecord), 1, false);
         LocalDateTime now = LocalDateTime.now();
         bridgeMessage.setKafkaPubTime(now);
+        String jsonString = JsonUtils.toJsonString(bridgeMessage);
         return new ProducerRecord<>(topic, producerRecord.partition(), producerRecord.timestamp(),
-                producerRecord.key(), JsonUtils.toJsonString(bridgeMessage), producerRecord.headers());
+                producerRecord.key(), jsonString, producerRecord.headers());
     }
 
     /**
@@ -129,7 +131,7 @@ public class BridgeProducerInterceptor implements ProducerInterceptor<String,Str
     @AllArgsConstructor
     private static class KafkaBridgeMsg implements IBridgeMessageContent {
 
-        ProducerRecord<String,String> producerRecord;
+        ProducerRecord<String, String> producerRecord;
 
         @Override
         public String serializeToJsonStr() {

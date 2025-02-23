@@ -6,10 +6,8 @@ import com.dereckchen.remagen.models.BridgeOption;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.PartitionInfo;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -47,11 +45,6 @@ public class KafkaSend {
         // 创建生产者实例
         KafkaBridgeProducer<String, String> producer = new KafkaBridgeProducer<>(props);
 
-
-        List<PartitionInfo> partitionInfos = producer.partitionsFor(topic);
-        log.info("partitionInfos: {}", partitionInfos);
-
-
         String key = "1";
         String value = "{\n" +
                 "\"uid\":1,\n" +
@@ -63,13 +56,13 @@ public class KafkaSend {
             ProducerRecord<String, String> record = new ProducerRecord<>(topic, key + Math.random(), value);
             BridgeOption option = new BridgeOption(mqttTopic, topic, getProps(topic, mqttTopic));
             int finalI = i;
-            producer.send(record, "1"+Math.random(),(metadata, exception) -> {
+            producer.send(record, "1" + Math.random(), (metadata, exception) -> {
                 if (exception == null) {
                     log.info("Message {} sent successfully: {}", finalI, metadata.toString());
                 } else {
                     log.error("Error {} sending message: {}", finalI, exception.getMessage());
                 }
-            },option);
+            }, option);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {

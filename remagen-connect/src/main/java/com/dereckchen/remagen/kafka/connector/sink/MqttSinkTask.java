@@ -24,7 +24,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.dereckchen.remagen.consts.ConnectorConst.*;
+import static com.dereckchen.remagen.consts.ConnectorConst.DEFAULT_VERSION;
+import static com.dereckchen.remagen.consts.ConnectorConst.VERSION_ENV_KEY;
 import static com.dereckchen.remagen.utils.MetricsUtils.getLocalIp;
 
 @Slf4j
@@ -128,11 +129,11 @@ public class MqttSinkTask extends SinkTask {
             if (bridgeMessage.getKafkaPubTime() != null) {
                 Duration duration = Duration.between(bridgeMessage.getKafkaPubTime(), arriveTime);
                 long milliseconds = duration.toMillis();
-                MetricsUtils.observeRequestLatency(arriveAtSinkLatency,milliseconds,getLocalIp());
+                MetricsUtils.observeRequestLatency(arriveAtSinkLatency, milliseconds, getLocalIp());
             } else if (bridgeMessage.getPubFromSource() != null) {
                 Duration duration = Duration.between(bridgeMessage.getPubFromSource(), arriveTime);
                 long milliseconds = duration.toMillis();
-                MetricsUtils.observeRequestLatency(arriveAtSinkLatency,milliseconds,getLocalIp());
+                MetricsUtils.observeRequestLatency(arriveAtSinkLatency, milliseconds, getLocalIp());
             }
 
             messages.add(bridgeMessage);

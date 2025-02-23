@@ -33,7 +33,7 @@ public class MqttSend {
 
         BridgeOption bridgeOption = new BridgeOption(mqtt_topic, kafka_topic, props);
 
-        while (true){
+        while (true) {
             BridgeMessage msg = new BridgeMessage(new IBridgeMessageContent() {
                 @Override
                 public String serializeToJsonStr() {

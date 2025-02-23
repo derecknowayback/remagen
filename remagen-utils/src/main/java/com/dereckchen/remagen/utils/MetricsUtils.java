@@ -1,6 +1,9 @@
 package com.dereckchen.remagen.utils;
 
-import io.prometheus.client.*;
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.Counter;
+import io.prometheus.client.Gauge;
+import io.prometheus.client.Histogram;
 import io.prometheus.client.exporter.PushGateway;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +13,8 @@ import java.net.UnknownHostException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static com.dereckchen.remagen.consts.ConnectorConst.*;
+import static com.dereckchen.remagen.consts.ConnectorConst.PUSH_GATE_WAY_INTERVAL;
+import static com.dereckchen.remagen.consts.ConnectorConst.SINK_TASK_METRICS;
 
 /**
  * Utility class for Prometheus metrics.
@@ -96,7 +100,7 @@ public class MetricsUtils {
             return address.getHostAddress();
         } catch (UnknownHostException e) {
             log.error("getLocalIp failed", e);
-            return  "127.0.0.1";
+            return "127.0.0.1";
         }
     }
 

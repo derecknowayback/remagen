@@ -19,6 +19,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
@@ -31,7 +32,7 @@ public class KafkaBridgeConsumer extends KafkaConsumer<String, String> {
 
     private KafkaConnectManager connectManager;
     private Set<String> connectorNames = ConcurrentHashMap.newKeySet();
-    private Histogram arriveAtKafkaLatency = MetricsUtils.getHistogram("arrive_at_kafka_latency",  "host");
+    private Histogram arriveAtKafkaLatency = MetricsUtils.getHistogram("arrive_at_kafka_latency", "host");
 
 
     public KafkaBridgeConsumer(Map<String, Object> configs) {
@@ -99,7 +100,7 @@ public class KafkaBridgeConsumer extends KafkaConsumer<String, String> {
     @Override
     public ConsumerRecords<String, String> poll(Duration timeout) {
         ConsumerRecords<String, String> bridgeRecords = super.poll(timeout);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
         Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsMap = new HashMap<>(16);
         for (TopicPartition topicPartition : bridgeRecords.partitions()) {
             List<ConsumerRecord<String, String>> records = bridgeRecords.records(topicPartition);
@@ -107,7 +108,8 @@ public class KafkaBridgeConsumer extends KafkaConsumer<String, String> {
             for (ConsumerRecord<String, String> record : records) {
                 BridgeMessage bridgeMessage = JsonUtils.fromJson(record.value(), BridgeMessage.class);
                 if (bridgeMessage.getPubFromSource() != null) {
-                    MetricsUtils.observeRequestLatency(arriveAtKafkaLatency, Duration.between(bridgeMessage.getArriveAtSource(), now).toMillis(), getLocalIp());
+                    log.info("消息延迟: {} ms", Duration.between(bridgeMessage.getPubFromSource(), now).toMillis());
+                    MetricsUtils.observeRequestLatency(arriveAtKafkaLatency, Duration.between(bridgeMessage.getPubFromSource(), now).toMillis(), getLocalIp());
                 }
                 ConsumerRecord<String, String> newRecord = new ConsumerRecord<>(record.topic(), record.partition(), record.offset(),
                         record.timestamp(), record.timestampType(), record.serializedKeySize(),

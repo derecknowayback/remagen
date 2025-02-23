@@ -2,8 +2,6 @@ package com.dereckchen.remagen.utils;
 
 import com.dereckchen.remagen.consts.ConnectorConst;
 import com.dereckchen.remagen.models.KafkaServerConfig;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
 
 import java.util.Collections;
 import java.util.HashMap;
