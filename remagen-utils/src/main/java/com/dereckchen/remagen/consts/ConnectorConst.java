@@ -44,5 +44,5 @@ public class ConnectorConst {
     public static final String PUSH_GATE_WAY_ENV = "PUSH_GATE_WAY_URL";
     public static final String SOURCE_TASK_METRICS = "source_task_metrics";
     public static final String SINK_TASK_METRICS = "sink_task_metrics";
-    public static final int PUSH_GATE_WAY_INTERVAL = 10 * 1000;
+    public static final int PUSH_GATE_WAY_INTERVAL = 1 * 1000;
 }

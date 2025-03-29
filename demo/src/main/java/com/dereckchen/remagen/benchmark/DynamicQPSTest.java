@@ -36,6 +36,6 @@ public class DynamicQPSTest {
                 log.error("执行失败", e);
             }
         });
-        log.info("QPS: {} 执行完毕, 共发送{}次请求", qps, cnt);
+        log.warn("QPS: {} 执行完毕, 共发送{}次请求", qps, cnt);
     }
 }

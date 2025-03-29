@@ -6,10 +6,13 @@ import io.prometheus.client.Gauge;
 import io.prometheus.client.Histogram;
 import io.prometheus.client.exporter.PushGateway;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -105,8 +108,11 @@ public class MetricsUtils {
     }
 
     @Slf4j
-    @AllArgsConstructor
     public static class FlushGatewayThread implements Runnable {
+
+        public FlushGatewayThread(PushGateway pushGateway) {
+            this.pushGateway = pushGateway;
+        }
 
         PushGateway pushGateway;
 

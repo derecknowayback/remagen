@@ -20,6 +20,8 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.dereckchen.remagen.utils.MetricsUtils.getLocalIp;
 
@@ -90,12 +92,17 @@ public class MqttBridgeClient extends MqttClient {
         super.setCallback(extended);
     }
 
+    private AtomicInteger counter = new AtomicInteger(0);
+
     private MqttMessage rewriteMqttMessage(MqttMessage message) {
         BridgeMessage bridgeMessage = JsonUtils.fromJson(message.getPayload(), BridgeMessage.class);
         LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
         bridgeMessage.setMqttEndTime(now);
         if (bridgeMessage.getPubFromSink() != null) {
-            log.info("收到Sink消息,耗时:{}ms", Duration.between(bridgeMessage.getPubFromSink(), now).toMillis());
+            if (counter.incrementAndGet() % 100 == 0) {
+                log.info("收到Sink消息,耗时:{}ms", Duration.between(bridgeMessage.getPubFromSink(), now).toMillis());
+                counter.set(0);
+            }
             MetricsUtils.observeRequestLatency(arriveAtMqttClientHistogram,
                     Duration.between(bridgeMessage.getPubFromSink(), now).toMillis(), getLocalIp());
         }
